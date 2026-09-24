@@ -2,10 +2,10 @@
  * Service worker — makes Japan Pocket work offline.
  * App files are cached on install (cache-first). Bump VERSION whenever
  * you change any file so phones pick up the new version.
- * Cross-origin requests (exchange-rate API, Google Translate) are not cached
+ * Cross-origin requests (exchange-rate and translation APIs) are not cached
  * here; the last exchange rate is kept in localStorage by the Money tool.
  */
-var VERSION = 'jp-v1.0.0';
+var VERSION = 'jp-v1.1.0';
 
 var APP_FILES = [
   './',
@@ -21,6 +21,7 @@ var APP_FILES = [
   'js/core/ui.js',
   'js/core/registry.js',
   'js/core/router.js',
+  'js/core/translate.js',
   'js/core/app.js',
   'js/data/phrases.js',
   'js/data/dietary.js',

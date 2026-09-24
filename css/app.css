@@ -170,6 +170,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   transition: transform .1s ease, filter .1s ease;
 }
 .btn:active { transform: scale(.98); filter: brightness(.95); }
+.btn:disabled { opacity: .6; cursor: default; }
 .btn-primary { background: var(--primary); color: var(--primary-ink); }
 .btn-accent  { background: var(--accent); color: var(--accent-ink); }
 .btn-ghost   { background: transparent; border-color: var(--border); color: var(--primary); }
@@ -262,7 +263,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .feature-red { background: var(--t-red-bg); }
 .feature:active { transform: scale(.98); }
 
-.phrase-list { display: flex; flex-direction: column; gap: 12px; }
+.phrase-list, .recent-list { display: flex; flex-direction: column; gap: 12px; }
+.recent-list:not(:empty) { margin-top: 16px; }
 .phrase-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 14px 16px 12px; box-shadow: var(--shadow); cursor: pointer;
@@ -289,6 +291,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .check input, .check-label input { width: 26px; height: 26px; flex: none; margin: 2px 0 0; accent-color: var(--primary); }
 .check-text { display: flex; flex-direction: column; min-width: 0; }
 .check-ja { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+.tr-result:not(:empty) { margin-top: 14px; }
+.tr-result .phrase-card { box-shadow: none; border-color: var(--primary); border-left-color: var(--primary); }
+.tr-msg { text-align: center; color: var(--muted); margin: 8px 0; }
+.tr-msg.warn { color: var(--accent); font-weight: 650; }
+.recent-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 6px 2px 0; color: var(--muted); font-weight: 650; }
+.link-btn { flex: none; white-space: nowrap; min-height: 48px; padding: 0 8px; border: 0; background: none; color: var(--primary); font-weight: 650; cursor: pointer; }
 .food-preview { white-space: pre-line; font-size: 1.2rem; line-height: 1.6; }
 
 /* ---------- Show mode ---------- */

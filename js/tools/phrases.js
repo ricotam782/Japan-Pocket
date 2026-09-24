@@ -1,6 +1,6 @@
 /*
- * Phrases 對話 — phrase cards, show mode, own cards, type-anything,
- * taxi card and food card.
+ * Phrases 對話 — phrase cards, show mode, own cards, in-app translation
+ * (type anything → Japanese, with recent history), taxi card and food card.
  *
  * Routes: #/phrases            main screen
  *         #/phrases/taxi       taxi destinations
@@ -10,6 +10,7 @@
  * Storage: phrases.custom  [{id, cat, en, zh, ja, romaji}]
  *          phrases.favs    [phrase ids]
  *          phrases.tab     last category tab
+ *          phrases.history last 10 translations [{id, en, zh, ja, romaji}]
  *          taxi            [{id, label, name, address, phone}]
  *          food            {selected: [ids], extra: ''}
  */
@@ -55,7 +56,7 @@
       ])
     ]));
 
-    // Type anything → Google Translate
+    // Type anything → Japanese, translated in the app
     var sl = store.get('phrases.sl', 'en');
     var ta = el('textarea', { rows: '2', placeholder: sl === 'en' ? 'Type in English…' : '輸入中文…', 'aria-label': 'Text to translate 要翻譯的文字' });
     var slTabs = el('div', { class: 'seg' });
@@ -69,21 +70,86 @@
       });
     }
     drawSeg();
+    var result = el('div', { class: 'tr-result', 'aria-live': 'polite' });
+    var recentWrap = el('div', { class: 'recent-list' });
+    var goBtn = el('button', {
+      type: 'submit', class: 'btn btn-primary btn-block btn-big'
+    }, [bi('Translate to Japanese', '翻譯成日文')]);
+
+    function translatedCard(item, onSaved) {
+      var saved = customCards().some(function (c) { return c.ja === item.ja && (c.en === item.en || c.zh === item.zh); });
+      var card = ui.phraseCard(item);
+      card.appendChild(el('div', { class: 'btn-row' }, [
+        saved ? el('span', { class: 'hint', text: '✓ Saved in My cards 已儲存到我的句子' })
+          : ui.button('☆ Save to My cards', '儲存到我的句子', function (e) {
+            e.stopPropagation();
+            store.update('phrases.custom', [], function (l) {
+              l.push({ id: 'u' + store.uid(), cat: 'mine', en: item.en, zh: item.zh, ja: item.ja, romaji: item.romaji });
+            });
+            ui.toast('Saved 已儲存');
+            if (onSaved) onSaved();
+          }, 'btn-ghost')
+      ]));
+      return card;
+    }
+
+    // skipId: the translation currently shown above, so it is not listed twice.
+    function drawRecent(skipId) {
+      recentWrap.textContent = '';
+      var hist = store.get('phrases.history', []).filter(function (h) { return h.id !== skipId; });
+      if (!hist.length) return;
+      recentWrap.appendChild(el('div', { class: 'recent-head' }, [
+        bi('Recent translations (work offline)', '最近翻譯（離線亦可查看）'),
+        el('button', {
+          type: 'button', class: 'link-btn', text: 'Clear 清除',
+          on: { click: function () { store.set('phrases.history', []); drawRecent(); } }
+        })
+      ]));
+      hist.forEach(function (h) { recentWrap.appendChild(ui.phraseCard(h)); });
+    }
+
+    function doTranslate() {
+      var text = ta.value.trim();
+      if (!text) { ui.toast('Type something first 請先輸入文字'); ta.focus(); return; }
+      if (!navigator.onLine) {
+        result.textContent = '';
+        result.appendChild(el('p', { class: 'tr-msg warn' }, [bi('Translation needs internet. Saved and recent cards still work offline.', '翻譯需要上網。已儲存及最近翻譯的句子離線仍可使用。')]));
+        return;
+      }
+      goBtn.disabled = true;
+      result.textContent = '';
+      result.appendChild(el('p', { class: 'tr-msg' }, [bi('Translating…', '翻譯中…')]));
+      JP.translate(text, sl).then(function (r) {
+        var item = { en: sl === 'en' ? text : '', zh: sl === 'en' ? '' : text, ja: r.ja, romaji: r.romaji };
+        item.id = 'h' + store.uid();
+        store.update('phrases.history', [], function (h) {
+          h = h.filter(function (x) { return !(x.ja === item.ja && x.en === item.en && x.zh === item.zh); });
+          h.unshift(item);
+          return h.slice(0, 10);
+        });
+        result.textContent = '';
+        result.appendChild(translatedCard(item, function () { result.textContent = ''; result.appendChild(translatedCard(item)); }));
+        result.appendChild(el('p', { class: 'hint' }, [bi('Machine translation (' + r.source + ') — keep sentences short and simple.', '機器翻譯，僅供參考；句子越短越簡單越準確。')]));
+        drawRecent(item.id);
+      }).catch(function () {
+        result.textContent = '';
+        result.appendChild(el('p', { class: 'tr-msg warn' }, [bi('Could not translate right now.', '暫時無法翻譯。')]));
+        result.appendChild(el('a', {
+          class: 'btn btn-ghost btn-block', href: translateUrl(text, sl), target: '_blank', rel: 'noopener'
+        }, [bi('Try Google Translate ↗', '改用 Google 翻譯')]));
+      }).then(function () { goBtn.disabled = false; });
+    }
+
     view.appendChild(ui.section('Type anything', '隨意輸入', [
-      el('div', { class: 'card' }, [
+      el('form', { class: 'card', on: { submit: function (e) { e.preventDefault(); ta.blur(); doTranslate(); } } }, [
         slTabs,
         ta,
-        el('button', {
-          type: 'button', class: 'btn btn-primary btn-block',
-          on: {
-            click: function () {
-              if (!ta.value.trim()) { ui.toast('Type something first 請先輸入文字'); ta.focus(); return; }
-              window.open(translateUrl(ta.value.trim(), sl), '_blank', 'noopener');
-            }
-          }
-        }, [bi('Translate to Japanese ↗', '翻譯成日文（Google 翻譯，需上網）')])
-      ])
+        goBtn,
+        result
+      ]),
+      recentWrap
     ]));
+    drawRecent();
 
     // Category tabs
     var tabItems = [{ id: 'fav', en: '★ Favourites', zh: '最愛' }]
@@ -164,10 +230,18 @@
         click: function () {
           var text = en.value.trim() || zh.value.trim();
           if (!text) { ui.toast('Type English or Chinese first 請先輸入英文或中文'); return; }
-          window.open(translateUrl(text, en.value.trim() ? 'en' : 'zh-TW'), '_blank', 'noopener');
+          helper.disabled = true;
+          ui.toast('Translating… 翻譯中…');
+          JP.translate(text, en.value.trim() ? 'en' : 'zh-TW').then(function (r) {
+            ja.value = r.ja;
+            if (r.romaji) romaji.value = r.romaji;
+            ui.toast('Japanese filled in — please check 已填入日文，請檢查');
+          }).catch(function () {
+            ui.toast(navigator.onLine ? 'Could not translate 暫時無法翻譯' : 'Needs internet 需要上網');
+          }).then(function () { helper.disabled = false; });
         }
       }
-    }, [bi('Get Japanese from Google Translate ↗', '用 Google 翻譯取得日文，再貼上')]);
+    }, [bi('✨ Fill in Japanese automatically', '自動翻譯成日文（需上網）')]);
 
     view.appendChild(ui.section(card.id ? 'Edit card' : 'New card', card.id ? '編輯句子' : '新增句子', [
       el('form', {
