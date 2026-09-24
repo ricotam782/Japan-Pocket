@@ -1,7 +1,8 @@
 /*
- * Lists 清單 — packing checklist and omiyage (souvenir) list.
- * Routes: #/lists, #/lists/omiyage
- * Storage: list.packing, list.omiyage  [{id, text, for, done}]
+ * Lists 清單 — packing checklist, shopping list and omiyage (souvenir) list.
+ * Routes: #/lists, #/lists/shopping, #/lists/omiyage
+ * Storage: list.packing, list.shopping, list.omiyage  [{id, text, for, done}]
+ * ('for' holds the optional extra field: where to buy / who the gift is for)
  */
 (function () {
   var ui = JP.ui, el = ui.el, bi = ui.bi, store = JP.store;
@@ -17,8 +18,20 @@
   ];
 
   var KINDS = [
-    { id: 'packing', en: '🧳 Packing', zh: '行李清單', forLabel: null },
-    { id: 'omiyage', en: '🎁 Omiyage', zh: '手信清單', forLabel: ['For whom', '送給誰'] }
+    {
+      id: 'packing', en: '🧳 Packing', zh: '行李清單',
+      item: ['Item', '項目'], placeholder: 'Add item 新增項目'
+    },
+    {
+      id: 'shopping', en: '🛒 Shopping', zh: '購物清單',
+      item: ['Item', '想買的東西'], placeholder: 'e.g. Muji socks 例：無印良品襪子',
+      extra: ['Where to buy (optional)', '在哪裡買（可不填）'], extraPlaceholder: 'e.g. Don Quijote 例：唐吉訶德', extraPrefix: '📍 '
+    },
+    {
+      id: 'omiyage', en: '🎁 Omiyage', zh: '手信清單',
+      item: ['Gift', '禮物'], placeholder: 'e.g. Tokyo Banana 例：東京芭娜娜',
+      extra: ['For whom', '送給誰'], extraPlaceholder: 'e.g. Mary 例：瑪麗', extraPrefix: '→ '
+    }
   ];
 
   function load(kind) {
@@ -47,8 +60,8 @@
     ]));
 
     // Add form
-    var text = el('input', { type: 'text', placeholder: kind.id === 'omiyage' ? 'e.g. Tokyo Banana 例：東京芭娜娜' : 'Add item 新增項目', autocomplete: 'off', 'aria-label': 'New item 新項目' });
-    var forWhom = kind.forLabel ? el('input', { type: 'text', placeholder: 'e.g. Mary 例：瑪麗', autocomplete: 'off' }) : null;
+    var text = el('input', { type: 'text', placeholder: kind.placeholder, autocomplete: 'off', 'aria-label': 'New item 新項目' });
+    var forWhom = kind.extra ? el('input', { type: 'text', placeholder: kind.extraPlaceholder, autocomplete: 'off' }) : null;
     view.appendChild(el('form', {
       class: 'card form', on: {
         submit: function (e) {
@@ -59,8 +72,8 @@
         }
       }
     }, [
-      ui.field(kind.id === 'omiyage' ? 'Gift' : 'Item', kind.id === 'omiyage' ? '禮物' : '項目', text),
-      forWhom ? ui.field(kind.forLabel[0], kind.forLabel[1], forWhom) : null,
+      ui.field(kind.item[0], kind.item[1], text),
+      forWhom ? ui.field(kind.extra[0], kind.extra[1], forWhom) : null,
       el('button', { type: 'submit', class: 'btn btn-primary btn-block' }, [bi('+ Add', '新增')])
     ]));
 
@@ -77,7 +90,7 @@
           cb,
           el('span', { class: 'check-text' }, [
             el('span', { text: item.text }),
-            item.for ? el('span', { class: 'check-for', text: '→ ' + item.for }) : null
+            item.for ? el('span', { class: 'check-for', text: (kind.extraPrefix || '→ ') + item.for }) : null
           ])
         ]),
         ui.iconButton('🗑', 'Delete 刪除', function () {

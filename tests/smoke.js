@@ -99,7 +99,7 @@ function check(cond, msg) {
 
   console.log('Every tool renders on a narrow screen');
   const routes = ['phrases', 'phrases/taxi', 'phrases/food', 'phrases/edit', 'money', 'money/wallet', 'money/settle',
-    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/omiyage', 'settings'];
+    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/shopping', 'lists/omiyage', 'settings'];
   for (const r of routes) {
     await page.goto(base + '#/' + r);
     await page.waitForTimeout(150);
@@ -170,6 +170,22 @@ function check(cond, msg) {
   await page.locator('.dest .btn-primary').click();
   check((await page.locator('.show-ja').innerText()).includes('西新宿'), 'taxi card shows address fullscreen');
   await page.locator('.show-close').click();
+
+  console.log('Shopping list');
+  await page.goto(base + '#/lists/shopping');
+  check((await page.locator('.tab.active').innerText()).includes('Shopping'), 'shopping list tab');
+  await page.locator('form input').nth(0).fill('Muji socks');
+  await page.locator('form input').nth(1).fill('Don Quijote');
+  await page.locator('form button[type=submit]').click();
+  await page.waitForTimeout(100);
+  check((await page.locator('.checklist').innerText()).includes('📍 Don Quijote'), 'item added with where to buy');
+  await page.locator('.check-label input').first().check();
+  await page.waitForTimeout(100);
+  await page.reload();
+  check(await page.locator('.check-item.done').count() === 1, 'tick saved after reload');
+  check((await page.locator('.progress-text').innerText()).startsWith('1 / 1'), 'progress 1 / 1');
+  await noOverflow('shopping list');
+  await shot('12-shopping');
 
   console.log('Settings: add a third traveller');
   await page.goto(base + '#/settings');
