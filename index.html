@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Japan Pocket</title>
+  <meta name="description" content="Pocket toolkit for travelling in Japan: phrases, money, safety and more. 日本旅遊隨身工具。">
+  <meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141a24" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Japan Pocket">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // Apply saved theme before first paint to avoid a flash.
+    try {
+      var t = JSON.parse(localStorage.getItem('jp.settings') || '{}').theme;
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <button class="topbar-back" id="backBtn" type="button" aria-label="Back 返回" hidden>
+      <span aria-hidden="true">‹</span>
+    </button>
+    <h1 class="topbar-title" id="topTitle">
+      <span class="en">Japan Pocket</span>
+      <span class="zh" lang="zh-Hant">日本隨身寶</span>
+    </h1>
+  </header>
+
+  <main id="view" class="view" tabindex="-1"></main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Core -->
+  <script src="js/core/store.js"></script>
+  <script src="js/core/ui.js"></script>
+  <script src="js/core/registry.js"></script>
+  <script src="js/core/router.js"></script>
+
+  <!-- Data -->
+  <script src="js/data/phrases.js"></script>
+  <script src="js/data/dietary.js"></script>
+  <script src="js/data/emergency.js"></script>
+  <script src="js/data/cheatsheets.js"></script>
+
+  <!-- Tools: each file registers one home-screen tile -->
+  <script src="js/tools/phrases.js"></script>
+  <script src="js/tools/money.js"></script>
+  <script src="js/tools/safety.js"></script>
+  <script src="js/tools/cheatsheets.js"></script>
+  <script src="js/tools/lists.js"></script>
+  <script src="js/tools/settings.js"></script>
+
+  <!-- Boot -->
+  <script src="js/core/app.js"></script>
+</body>
+</html>
