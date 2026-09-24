@@ -7,7 +7,7 @@ Designed for iPhone (Safari), with large text, big buttons, English labels with 
 
 | Tool 工具 | What it does 功能 |
 |---|---|
-| 💬 **Phrases 對話** | Phrase cards by category (restaurant, shopping, hotel, transport, help), speak aloud in Japanese, full-screen "show to staff" mode, favourites, your own cards, "type anything" → Google Translate (English or Chinese → Japanese), taxi card, food/dietary card |
+| 💬 **Phrases 對話** | Phrase cards by category (restaurant, shopping, hotel, transport, help), speak aloud in Japanese, full-screen "show to staff" mode, favourites, your own cards, "type anything" translated **inside the app** (English or Chinese → Japanese, with a reading, recent translations kept for offline use), taxi card, food/dietary card |
 | 💴 **Money 錢** | Yen ⇄ CAD converter (live rate from [Frankfurter](https://frankfurter.dev), last rate cached with its date for offline use, manual override), quick price check, trip wallet for any number of travellers, **end-of-trip settlement: who pays whom** |
 | 🆘 **Safety 安全** | One-tap 110 / 119, what to say when they answer, medical info card per traveller (Japanese + English), Canadian Embassy in Tokyo, 24/7 Ottawa emergency line, emergency phrase cards |
 | 📋 **Cheat sheets 貼士** | Toilet buttons, garbage sorting, etiquette |
@@ -66,6 +66,7 @@ css/app.css             All styles; colour tokens for light/dark
 icons/                  App icons (SVG source + PNGs)
 js/core/
   store.js              localStorage helpers (keys prefixed "jp.")
+  translate.js          In-app translation (English/Chinese → Japanese)
   ui.js                 Element builder, bilingual labels, speech, show mode, phrase cards, tabs, formatting
   registry.js           JP.registerTool() — tools add themselves to the home screen
   router.js             Hash routes (#/money/wallet)
@@ -115,5 +116,8 @@ node tests/smoke.js                # add a folder name to also save screenshots
 - Emergency and embassy details are in `js/data/emergency.js`. Please confirm them on
   [travel.gc.ca](https://travel.gc.ca/assistance/embassies-consulates/japan) before travelling.
 - "Type anything" and "Update rate" need the internet; everything else works offline.
+- In-app translation (`js/core/translate.js`) uses Google's free public web endpoint (no key) and falls back to
+  [MyMemory](https://mymemory.translated.net). The Google endpoint is unofficial and could change; if both fail,
+  the app offers a link to open Google Translate instead.
 - The wallet splits each expense evenly among the people ticked under "Shared by"; any leftover
   yen from rounding goes to the first people in the list. Settlement needs at most (number of people − 1) transfers.

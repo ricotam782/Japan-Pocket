@@ -58,10 +58,26 @@ function check(cond, msg) {
     status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
     body: JSON.stringify({ amount: 1, base: 'JPY', date: '2026-09-23', rates: { CAD: 0.0092 } })
   }));
+  // Translation APIs are mocked too. googleUp=false simulates Google failing → MyMemory fallback.
+  let googleUp = true;
+  await context.route(/translate\.googleapis\.com/, (route) => {
+    if (!googleUp) return route.fulfill({ status: 429, body: 'busy' });
+    const q = new URL(route.request().url()).searchParams.get('q');
+    const ja = q.includes('toilet') ? 'トイレはどこですか？' : 'テスト';
+    route.fulfill({
+      status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify([[[ja, q, null, null, 10], [null, null, 'Toire wa doko desu ka?', null]], null, 'en'])
+    });
+  });
+  await context.route(/mymemory/, (route) => route.fulfill({
+    status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify({ responseData: { translatedText: '駅はどこですか？' }, responseStatus: 200 })
+  }));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  // 429 = the simulated Google failure used to test the MyMemory fallback.
+  page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('429')) errors.push(m.text()); });
   page.on('dialog', (d) => d.accept());
 
   async function noOverflow(label) {
@@ -113,6 +129,33 @@ function check(cond, msg) {
   await page.locator('.tab', { hasText: 'My cards' }).click();
   check((await page.locator('.phrase-list').innerText()).includes('グルテンフリー'), 'own card saved and survives reload');
   await shot('03-phrases');
+
+  console.log('In-app translation');
+  await page.goto(base + '#/phrases');
+  await page.locator('.seg-btn', { hasText: 'English' }).click();
+  await page.locator('form.card textarea').fill('Where is the toilet?');
+  await page.locator('form.card button[type=submit]').click();
+  await page.waitForSelector('.tr-result .phrase-ja');
+  check(page.url().endsWith('#/phrases') && context.pages().length === 1, 'translation stays inside the app');
+  check((await page.locator('.tr-result .phrase-ja').innerText()) === 'トイレはどこですか？', 'Japanese shown in the app');
+  check((await page.locator('.tr-result .phrase-romaji').innerText()).includes('Toire'), 'romaji reading shown');
+  await noOverflow('translation result');
+  await shot('03b-translate');
+  await page.locator('.tr-result .btn', { hasText: 'Save to My cards' }).click();
+  check((await page.locator('.tr-result').innerText()).includes('Saved in My cards'), 'translation saved to My cards');
+  check(await page.locator('.recent-head').count() === 0, 'current result is not duplicated in Recent');
+  googleUp = false;
+  await page.locator('form.card textarea').fill('Where is the station?');
+  await page.locator('form.card button[type=submit]').click();
+  await page.waitForFunction(() => (document.querySelector('.tr-result .phrase-ja') || {}).textContent === '駅はどこですか？');
+  check(true, 'falls back to MyMemory when Google fails');
+  check((await page.locator('.recent-list').innerText()).includes('トイレはどこですか？'), 'earlier translation listed under Recent');
+  googleUp = true;
+  await page.goto(base + '#/phrases/edit');
+  await page.locator('input').first().fill('Where is the toilet?');
+  await page.locator('.btn', { hasText: 'Fill in Japanese' }).click();
+  await page.waitForFunction(() => document.querySelector('textarea.input-ja').value.length > 0);
+  check((await page.locator('textarea.input-ja').inputValue()) === 'トイレはどこですか？', 'add-card form fills Japanese automatically');
 
   console.log('Food + taxi cards');
   await page.goto(base + '#/phrases/food');
@@ -208,6 +251,11 @@ function check(cond, msg) {
     await page.waitForTimeout(100);
     check((await page.locator('#view').innerText()).trim().length > 20, `#/${r} works offline`);
   }
+  await page.goto(base + '#/phrases');
+  check(await page.locator('.recent-head').count() === 1, 'recent translations visible offline');
+  await page.locator('form.card textarea').fill('hello');
+  await page.locator('form.card button[type=submit]').click();
+  check((await page.locator('.tr-msg').innerText()).includes('needs internet'), 'offline translation shows a clear message');
   await page.goto(base + '#/money');
   await page.waitForTimeout(200);
   const offRate = await page.locator('.rate-sub').innerText();
