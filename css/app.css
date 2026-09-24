@@ -201,6 +201,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-weight: 650; font-size: .95rem; cursor: pointer; scroll-snap-align: start;
 }
 .tab .bi { align-items: center; }
+.tabs-fit { display: grid; gap: 6px; margin: 0 0 14px; padding: 0; overflow: visible; }
+.tabs-fit .tab { padding: 8px 4px; border-radius: 16px; font-size: .9rem; min-width: 0; overflow-wrap: anywhere; }
 .tab.active { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }

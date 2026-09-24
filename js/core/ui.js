@@ -234,7 +234,9 @@ JP.ui = (function () {
    * tabs([{id, en, zh}], activeId, onChange) → element
    */
   function tabs(items, active, onChange) {
-    var bar = el('div', { class: 'tabs', role: 'tablist' });
+    // Up to 3 tabs share the width equally so none is hidden off-screen.
+    var bar = el('div', { class: 'tabs' + (items.length <= 3 ? ' tabs-fit' : ''), role: 'tablist' });
+    if (items.length <= 3) bar.style.gridTemplateColumns = 'repeat(' + items.length + ', minmax(0, 1fr))';
     items.forEach(function (it) {
       bar.appendChild(el('button', {
         type: 'button', role: 'tab', class: 'tab' + (it.id === active ? ' active' : ''),
