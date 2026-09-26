@@ -84,6 +84,10 @@ function check(cond, msg) {
     const w = await page.evaluate(() => document.documentElement.scrollWidth);
     check(w <= 375, `${label}: no horizontal scroll (width ${w})`);
   }
+  async function noOverflowOn(pg, label) {
+    const w = await pg.evaluate(() => document.documentElement.scrollWidth);
+    check(w <= 375, `${label}: no horizontal scroll (width ${w})`);
+  }
   async function shot(name) {
     if (!SHOTS) return;
     fs.mkdirSync(SHOTS, { recursive: true });
@@ -99,7 +103,7 @@ function check(cond, msg) {
 
   console.log('Every tool renders on a narrow screen');
   const routes = ['phrases', 'phrases/taxi', 'phrases/food', 'phrases/edit', 'money', 'money/wallet', 'money/settle',
-    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/shopping', 'lists/omiyage', 'settings'];
+    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/shopping', 'lists/omiyage', 'settings', 'sync'];
   for (const r of routes) {
     await page.goto(base + '#/' + r);
     await page.waitForTimeout(150);
@@ -279,6 +283,88 @@ function check(cond, msg) {
   await page.goto(base + '#/money/wallet');
   check((await page.locator('.stat-yen').nth(1).innerText()) === '¥9,900', 'wallet data still there offline');
   await shot('11-offline-money');
+
+  console.log('Share between two phones');
+  async function phone() {
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true, locale: 'en-CA', serviceWorkers: 'block' });
+    await ctx.route(/frankfurter|googleapis|mymemory/, (r) => r.abort());
+    const pg = await ctx.newPage();
+    pg.on('pageerror', (e) => errors.push('phone: ' + e.message));
+    pg.on('dialog', (d) => d.accept());
+    await pg.goto(base);
+    return pg;
+  }
+  async function wallet(pg, amount, payer, note) {
+    await pg.goto(base + '#/money/wallet');
+    await pg.locator('.form .input-big').fill(String(amount));
+    await pg.locator('.form .chips').first().locator('.chip', { hasText: payer }).click();
+    await pg.locator('.form input[type=text]').last().fill(note);
+    await pg.locator('.form button[type=submit]').click();
+    await pg.waitForTimeout(80);
+  }
+  async function shareText(pg, from) {
+    return pg.evaluate((f) => JSON.stringify(JP.sync.buildPackage(
+      JP.sync.CATEGORIES.filter((c) => JP.sync.prefs()[c.id]).map((c) => c.id), f)), from);
+  }
+  async function receive(pg, text) {
+    await pg.goto(base + '#/');
+    await pg.goto(base + '#/sync');
+    await pg.locator('.details summary', { hasText: 'Paste text' }).click();
+    await pg.locator('.details textarea').fill(text);
+    await pg.locator('.details .btn', { hasText: 'Check' }).click();
+    await pg.waitForSelector('.sync-preview > *');
+    return pg.locator('.sync-preview').innerText();
+  }
+  const A = await phone(), B = await phone();
+  await A.goto(base + '#/settings');
+  const an = A.locator('.traveller input');
+  await an.nth(0).fill('Rico'); await an.nth(0).dispatchEvent('change');
+  await an.nth(1).fill('Mei'); await an.nth(1).dispatchEvent('change');
+  await wallet(A, 3000, 'Rico', 'Ramen');
+  await wallet(A, 1200, 'Rico', 'Coffee');
+  await A.goto(base + '#/safety/medical/t1');
+  await A.locator('form textarea').first().fill('Penicillin');
+  await A.locator('form button[type=submit]').click();
+  await A.goto(base + '#/sync');
+  await noOverflowOn(A, 'sync screen');
+  if (SHOTS) await A.screenshot({ path: path.join(SHOTS, '13-sync.png'), fullPage: true });
+
+  let pv = await receive(B, await shareText(A, 'Rico'));
+  check(pv.includes('From Rico') && pv.includes('+2 new'), 'phone B previews 2 new expenses from Rico');
+  if (SHOTS) await B.screenshot({ path: path.join(SHOTS, '14-sync-preview.png'), fullPage: true });
+  await B.locator('.sync-preview .btn', { hasText: 'Merge' }).click();
+  await B.waitForTimeout(100);
+  const bState = await B.evaluate(() => ({
+    names: JP.store.settings().travellers.map((t) => t.name).join(','),
+    wallet: JP.store.get('wallet', []).length,
+    allergy: (JP.store.get('medical', {}).t1 || {}).allergies
+  }));
+  check(bState.names === 'Rico,Mei', 'traveller names synced');
+  check(bState.wallet === 2, 'expenses synced');
+  check(bState.allergy === 'Penicillin', 'medical card synced');
+
+  // B adds one and deletes "Coffee", then shares back.
+  await wallet(B, 5000, 'Mei', 'Tickets');
+  await B.goto(base + '#/money/wallet');
+  await B.locator('.entry', { hasText: 'Coffee' }).locator('.icon-btn').click();
+  await B.waitForTimeout(80);
+  const back = await shareText(B, 'Mei');
+  pv = await receive(A, back);
+  check(pv.includes('+1 new') && pv.includes('1 removed'), 'phone A previews 1 new + 1 removed from Mei');
+  await A.locator('.sync-preview .btn', { hasText: 'Merge' }).click();
+  await A.waitForTimeout(100);
+  const aNotes = await A.evaluate(() => JP.store.get('wallet', []).map((e) => e.note).sort().join(','));
+  check(aNotes === 'Ramen,Tickets', 'A now has Ramen + Tickets (Coffee deletion carried over)');
+  pv = await receive(A, back);
+  check(pv.includes('Already up to date'), 'importing the same file again changes nothing');
+  pv = await receive(B, await shareText(A, 'Rico'));
+  check(pv.includes('Already up to date'), 'both phones in sync');
+  await A.goto(base + '#/money/settle');
+  const tA = (await A.locator('.transfer').allInnerTexts()).join(' ').replace(/\s+/g, ' ');
+  check(tA.includes('Rico → Mei') && tA.includes('¥1,000'), 'settlement from synced data: Rico pays Mei ¥1,000');
+  const bad = await receive(B, '{"hello":1}');
+  check(bad.includes('not a Japan Pocket'), 'rejects a wrong file');
+  await A.context().close(); await B.context().close();
 
   check(errors.length === 0, 'no JavaScript errors' + (errors.length ? ': ' + errors.join(' | ') : ''));
 

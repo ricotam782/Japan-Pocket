@@ -106,6 +106,7 @@
           e.preventDefault();
           var out = {};
           Object.keys(inputs).forEach(function (k) { out[k] = inputs[k].value.trim(); });
+          out._updated = Date.now();
           store.update('medical', {}, function (m) { m[person.id] = out; });
           ui.toast('Saved 已儲存');
           JP.router.go('safety');

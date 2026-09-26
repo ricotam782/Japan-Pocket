@@ -7,6 +7,8 @@
  *   icon: '💴',               // emoji shown on the tile
  *   color: 'gold',            // tile accent: red | indigo | gold | green | teal | plum | slate
  *   order: 20,                // position on the home screen
+ *   hidden: false,            // true = no home tile (opened from another tool)
+ *   parent: 'settings',       // optional: where the Back button goes
  *   render: function (view, params) { ... }  // draw into the <main> element
  * });
  */

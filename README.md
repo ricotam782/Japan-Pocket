@@ -12,9 +12,18 @@ Designed for iPhone (Safari), with large text, big buttons, English labels with 
 | 🆘 **Safety 安全** | One-tap 110 / 119, what to say when they answer, medical info card per traveller (Japanese + English), Canadian Embassy in Tokyo, 24/7 Ottawa emergency line, emergency phrase cards |
 | 📋 **Cheat sheets 貼士** | Toilet buttons, garbage sorting, etiquette |
 | ✅ **Lists 清單** | Packing checklist, shopping list (with where to buy) and omiyage (souvenir) list |
-| ⚙️ **Settings 設定** | Travellers (unlimited), theme, backup / restore / erase |
+| ⚙️ **Settings 設定** | Travellers (unlimited), theme, backup / restore / erase, **🔄 share with partner** |
 
 All data stays in `localStorage` on the phone. There is no backend, no account and no tracking.
+
+### Sharing between two phones 與旅伴同步
+Settings › **🔄 Share with partner** (also linked from the Wallet). Tick what to share (wallet, travellers,
+medical cards, shopping / omiyage lists, taxi destinations, packing list, own phrase cards), tap **Share** and
+AirDrop the file (or send it by WhatsApp / as text). On the other phone: save it to Files, then
+**Choose file** — a preview shows what will be added, updated or removed before you **Merge**.
+Records are matched by id and the most recently changed copy wins; deletions are remembered so deleted items
+don't come back. Importing the same file twice changes nothing. Share both ways to be fully in sync.
+Tip: let one person set up the traveller names first and share them, so both phones start from the same list.
 所有資料只儲存在手機上，沒有伺服器、沒有帳戶。
 
 ---
@@ -67,6 +76,7 @@ icons/                  App icons (SVG source + PNGs)
 js/core/
   store.js              localStorage helpers (keys prefixed "jp.")
   translate.js          In-app translation (English/Chinese → Japanese)
+  sync.js               Share packages + merge logic for syncing two phones
   ui.js                 Element builder, bilingual labels, speech, show mode, phrase cards, tabs, formatting
   registry.js           JP.registerTool() — tools add themselves to the home screen
   router.js             Hash routes (#/money/wallet)

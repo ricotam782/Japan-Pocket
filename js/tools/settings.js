@@ -7,6 +7,10 @@
   function render(view) {
     var s = store.settings();
 
+    view.appendChild(el('a', { class: 'btn btn-accent btn-block btn-big sync-link', href: '#/sync' }, [
+      bi('🔄 Share with partner', '與旅伴同步資料')
+    ]));
+
     // Travellers
     var wallet = store.get('wallet', []);
     function usedBy(id) { return wallet.some(function (e) { return e.payer === id || (e.shares || []).indexOf(id) >= 0; }); }
@@ -19,7 +23,7 @@
           change: function () {
             var v = input.value.trim();
             if (!v) { input.value = t.name; return; }
-            s.travellers[idx].name = v; store.saveSettings(s); ui.toast('Saved 已儲存');
+            s.travellers[idx].name = v; JP.sync.touch(s.travellers[idx]); store.saveSettings(s); ui.toast('Saved 已儲存');
           }
         }
       });
@@ -30,7 +34,7 @@
           if (s.travellers.length <= 1) { ui.toast('Keep at least one traveller 至少保留一位旅客'); return; }
           if (usedBy(t.id)) { ui.toast('Used in the wallet — cannot remove 已用於錢包紀錄，無法移除'); return; }
           if (!ui.confirm('Remove ' + t.name + '? 確定移除？')) return;
-          s.travellers.splice(idx, 1); store.saveSettings(s); JP.router.render({ keepScroll: true });
+          s.travellers.splice(idx, 1); JP.sync.markDeleted('travellers', t.id); store.saveSettings(s); JP.router.render({ keepScroll: true });
         })
       ]));
     });
@@ -45,7 +49,7 @@
             e.preventDefault();
             var v = newName.value.trim();
             if (!v) { newName.focus(); return; }
-            s.travellers.push({ id: 't' + store.uid(), name: v }); store.saveSettings(s);
+            s.travellers.push(JP.sync.touch({ id: 't' + store.uid(), name: v })); store.saveSettings(s);
             ui.toast('Added 已新增'); JP.router.render({ keepScroll: true });
           }
         }

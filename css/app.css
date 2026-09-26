@@ -442,6 +442,14 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .about ol { padding-left: 1.3em; }
 .about li { margin: 8px 0; }
 
+/* ---------- Share / sync ---------- */
+.sync-link { margin: 4px 0 8px; }
+.sync-how-title { font-weight: 750; }
+.sync-how ol { padding-left: 1.3em; margin: 8px 0 0; }
+.sync-how li { margin: 8px 0; }
+.sync-from { font-weight: 700; margin-bottom: 10px; }
+.sync-preview:not(:empty) { margin-top: 12px; }
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);

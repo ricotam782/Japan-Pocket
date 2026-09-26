@@ -74,8 +74,9 @@ JP.router = (function () {
     });
     document.getElementById('backBtn').addEventListener('click', function () {
       var r = parse();
+      var tool = JP.getTool(r.id);
       if (r.params.length) go(r.id);
-      else go('');
+      else go(tool && tool.parent ? tool.parent : '');
     });
     render();
   }
