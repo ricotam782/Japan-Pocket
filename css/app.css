@@ -449,6 +449,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .sync-how li { margin: 8px 0; }
 .sync-from { font-weight: 700; margin-bottom: 10px; }
 .sync-preview:not(:empty) { margin-top: 12px; }
+.sync-done { border-color: var(--ok); border-left: 6px solid var(--ok); }
+.sync-done-title { font-weight: 750; color: var(--ok); font-size: 1.1rem; }
+.sync-done .hint { margin-bottom: 0; }
 
 /* ---------- Toast ---------- */
 .toast {

@@ -5,6 +5,12 @@
  */
 (function () {
   var ui = JP.ui, el = ui.el, bi = ui.bi, store = JP.store;
+  var justMerged = null; // 'file' | 'text' — shows the "merged" notice once after a merge
+
+  function deleteFileTip() {
+    return el('p', { class: 'hint' }, [bi('The share file is no longer needed — you can delete it in the Files app › Downloads.',
+      '分享檔案已經不再需要，可到「檔案」App ›「下載項目」刪除。')]);
+  }
 
   function fmtTime(iso) {
     if (!iso) return '—';
@@ -98,12 +104,12 @@
       var f = fileIn.files && fileIn.files[0];
       if (!f) return;
       var r = new FileReader();
-      r.onload = function () { load(String(r.result)); fileIn.value = ''; };
+      r.onload = function () { load(String(r.result), 'file'); fileIn.value = ''; };
       r.readAsText(f);
     });
     var paste = el('textarea', { rows: '3', placeholder: 'Paste the shared text here 在此貼上分享的文字', 'aria-label': 'Shared text 分享的文字' });
 
-    function load(text) {
+    function load(text, source) {
       var pkg = JP.sync.parse(text);
       previewBox.textContent = '';
       if (!pkg) {
@@ -135,26 +141,40 @@
           var ids = Object.keys(chosen).filter(function (k) { return chosen[k]; });
           if (!ids.length) { ui.toast('Nothing selected 未選擇任何項目'); return; }
           JP.sync.apply(pkg, ids);
-          ui.toast('Merged 已合併');
+          justMerged = source;
           JP.router.render();
-        }, 'btn-primary btn-block btn-big') : el('p', { class: 'tr-msg' }, [bi('Already up to date.', '資料已經是最新。')])
+        }, 'btn-primary btn-block btn-big') : el('div', {}, [
+          el('p', { class: 'tr-msg' }, [bi('Already up to date.', '資料已經是最新。')]),
+          source === 'file' ? deleteFileTip() : null
+        ])
       ]));
       previewBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    var notice = null;
+    if (justMerged) {
+      notice = el('div', { class: 'card sync-done', role: 'status' }, [
+        el('div', { class: 'sync-done-title' }, [bi('✓ Merged into this phone', '✓ 已合併到這部手機')]),
+        justMerged === 'file' ? deleteFileTip() : null
+      ]);
+      justMerged = null;
+    }
+
     view.appendChild(ui.section('2. Receive from partner', '2. 接收旅伴的資料', [
+      notice,
       el('div', { class: 'card form' }, [
         ui.button('📥 Choose file', '選擇檔案', function () { fileIn.click(); }, 'btn-primary btn-block btn-big'),
         fileIn,
         el('details', { class: 'details' }, [
           el('summary', {}, [bi('Paste text instead', '改為貼上文字')]),
           paste,
-          ui.button('Check', '檢查', function () { load(paste.value); }, 'btn-ghost btn-block')
+          ui.button('Check', '檢查', function () { load(paste.value, 'text'); }, 'btn-ghost btn-block')
         ]),
         el('p', { class: 'hint', text: 'Last received 上次接收：' + fmtTime(last.imported) + (last.from ? ' (' + last.from + ')' : '') })
       ]),
       previewBox
     ]));
+    if (notice) setTimeout(function () { notice.scrollIntoView({ block: 'center' }); }, 0);
   }
 
   JP.registerTool({
