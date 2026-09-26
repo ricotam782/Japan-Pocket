@@ -315,6 +315,13 @@ function check(cond, msg) {
     await pg.waitForSelector('.sync-preview > *');
     return pg.locator('.sync-preview').innerText();
   }
+  async function receiveFile(pg, text) {
+    await pg.goto(base + '#/');
+    await pg.goto(base + '#/sync');
+    await pg.locator('input[type=file]').setInputFiles({ name: 'japan-pocket-share.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+    await pg.waitForSelector('.sync-preview > *');
+    return pg.locator('.sync-preview').innerText();
+  }
   const A = await phone(), B = await phone();
   await A.goto(base + '#/settings');
   const an = A.locator('.traveller input');
@@ -334,6 +341,8 @@ function check(cond, msg) {
   if (SHOTS) await B.screenshot({ path: path.join(SHOTS, '14-sync-preview.png'), fullPage: true });
   await B.locator('.sync-preview .btn', { hasText: 'Merge' }).click();
   await B.waitForTimeout(100);
+  const bNotice = await B.locator('.sync-done').innerText();
+  check(bNotice.includes('已合併') && !bNotice.includes('下載項目'), 'merge notice shown; no file tip after pasted text');
   const bState = await B.evaluate(() => ({
     names: JP.store.settings().travellers.map((t) => t.name).join(','),
     wallet: JP.store.get('wallet', []).length,
@@ -349,14 +358,18 @@ function check(cond, msg) {
   await B.locator('.entry', { hasText: 'Coffee' }).locator('.icon-btn').click();
   await B.waitForTimeout(80);
   const back = await shareText(B, 'Mei');
-  pv = await receive(A, back);
-  check(pv.includes('+1 new') && pv.includes('1 removed'), 'phone A previews 1 new + 1 removed from Mei');
+  pv = await receiveFile(A, back);
+  check(pv.includes('+1 new') && pv.includes('1 removed'), 'phone A previews 1 new + 1 removed from Mei (via file)');
   await A.locator('.sync-preview .btn', { hasText: 'Merge' }).click();
   await A.waitForTimeout(100);
+  const aNotice = await A.locator('.sync-done').innerText();
+  check(aNotice.includes('Downloads') && aNotice.includes('下載項目'), 'after a file merge, notice says the file can be deleted');
+  await noOverflowOn(A, 'merge notice');
+  if (SHOTS) await A.screenshot({ path: path.join(SHOTS, '15-merged.png') });
   const aNotes = await A.evaluate(() => JP.store.get('wallet', []).map((e) => e.note).sort().join(','));
   check(aNotes === 'Ramen,Tickets', 'A now has Ramen + Tickets (Coffee deletion carried over)');
-  pv = await receive(A, back);
-  check(pv.includes('Already up to date'), 'importing the same file again changes nothing');
+  pv = await receiveFile(A, back);
+  check(pv.includes('Already up to date') && pv.includes('下載項目'), 'same file again: no changes, delete tip shown');
   pv = await receive(B, await shareText(A, 'Rico'));
   check(pv.includes('Already up to date'), 'both phones in sync');
   await A.goto(base + '#/money/settle');
