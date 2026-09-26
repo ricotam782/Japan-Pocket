@@ -84,7 +84,7 @@
           : ui.button('☆ Save to My cards', '儲存到我的句子', function (e) {
             e.stopPropagation();
             store.update('phrases.custom', [], function (l) {
-              l.push({ id: 'u' + store.uid(), cat: 'mine', en: item.en, zh: item.zh, ja: item.ja, romaji: item.romaji });
+              l.push(JP.sync.touch({ id: 'u' + store.uid(), cat: 'mine', en: item.en, zh: item.zh, ja: item.ja, romaji: item.romaji }));
             });
             ui.toast('Saved 已儲存');
             if (onSaved) onSaved();
@@ -249,10 +249,10 @@
           submit: function (e) {
             e.preventDefault();
             if (!ja.value.trim()) { ui.toast('Japanese is required 必須填寫日文'); ja.focus(); return; }
-            var data = {
+            var data = JP.sync.touch({
               id: card.id || ('u' + store.uid()), cat: cat.value,
               en: en.value.trim(), zh: zh.value.trim(), ja: ja.value.trim(), romaji: romaji.value.trim()
-            };
+            });
             store.update('phrases.custom', [], function (l) {
               var i = l.findIndex(function (c) { return c.id === data.id; });
               if (i >= 0) l[i] = data; else l.push(data);
@@ -275,6 +275,7 @@
         card.id ? ui.button('Delete this card', '刪除這張卡', function () {
           if (!ui.confirm('Delete this card? 確定刪除？')) return;
           store.update('phrases.custom', [], function (l) { return l.filter(function (c) { return c.id !== card.id; }); });
+          JP.sync.markDeleted('phrases.custom', card.id);
           store.update('phrases.favs', [], function (l) { return l.filter(function (x) { return x !== card.id; }); });
           ui.toast('Deleted 已刪除');
           JP.router.go('phrases');
@@ -319,6 +320,7 @@
     var delBtn = ui.button('Delete', '刪除', function () {
       if (!editing || !ui.confirm('Delete this destination? 確定刪除？')) return;
       store.update('taxi', [], function (l) { return l.filter(function (x) { return x.id !== editing; }); });
+      JP.sync.markDeleted('taxi', editing);
       JP.router.render();
     }, 'btn-danger btn-block');
     delBtn.hidden = true;
@@ -335,7 +337,7 @@
           submit: function (e) {
             e.preventDefault();
             if (!name.value.trim() && !addr.value.trim()) { ui.toast('Enter a name or address 請輸入名稱或地址'); return; }
-            var d = { id: editing || store.uid(), label: label.value.trim(), name: name.value.trim(), address: addr.value.trim(), phone: phone.value.trim() };
+            var d = JP.sync.touch({ id: editing || store.uid(), label: label.value.trim(), name: name.value.trim(), address: addr.value.trim(), phone: phone.value.trim() });
             store.update('taxi', [], function (l) {
               var i = l.findIndex(function (x) { return x.id === d.id; });
               if (i >= 0) l[i] = d; else l.push(d);

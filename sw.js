@@ -5,7 +5,7 @@
  * Cross-origin requests (exchange-rate and translation APIs) are not cached
  * here; the last exchange rate is kept in localStorage by the Money tool.
  */
-var VERSION = 'jp-v1.2.0';
+var VERSION = 'jp-v1.3.0';
 
 var APP_FILES = [
   './',
@@ -22,6 +22,7 @@ var APP_FILES = [
   'js/core/registry.js',
   'js/core/router.js',
   'js/core/translate.js',
+  'js/core/sync.js',
   'js/core/app.js',
   'js/data/phrases.js',
   'js/data/dietary.js',
@@ -32,7 +33,8 @@ var APP_FILES = [
   'js/tools/safety.js',
   'js/tools/cheatsheets.js',
   'js/tools/lists.js',
-  'js/tools/settings.js'
+  'js/tools/settings.js',
+  'js/tools/sync.js'
 ];
 
 self.addEventListener('install', function (event) {

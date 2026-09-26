@@ -67,7 +67,7 @@
         submit: function (e) {
           e.preventDefault();
           if (!text.value.trim()) { text.focus(); return; }
-          list.push({ id: store.uid(), text: text.value.trim(), for: forWhom ? forWhom.value.trim() : '', done: false });
+          list.push(JP.sync.touch({ id: store.uid(), text: text.value.trim(), for: forWhom ? forWhom.value.trim() : '', done: false }));
           save(); JP.router.render({ keepScroll: true });
         }
       }
@@ -83,7 +83,7 @@
     list.forEach(function (item) {
       var cb = el('input', {
         type: 'checkbox', checked: item.done,
-        on: { change: function () { item.done = cb.checked; save(); JP.router.render({ keepScroll: true }); } }
+        on: { change: function () { item.done = cb.checked; JP.sync.touch(item); save(); JP.router.render({ keepScroll: true }); } }
       });
       ul.appendChild(el('li', { class: 'check-item' + (item.done ? ' done' : '') }, [
         el('label', { class: 'check-label' }, [
@@ -94,7 +94,7 @@
           ])
         ]),
         ui.iconButton('🗑', 'Delete 刪除', function () {
-          list = list.filter(function (x) { return x.id !== item.id; }); save(); JP.router.render({ keepScroll: true });
+          list = list.filter(function (x) { return x.id !== item.id; }); JP.sync.markDeleted('list.' + kind.id, item.id); save(); JP.router.render({ keepScroll: true });
         })
       ]));
     });
@@ -103,7 +103,7 @@
     if (list.length) {
       view.appendChild(ui.button('Untick all', '清除所有剔號', function () {
         if (!ui.confirm('Untick every item? 確定清除所有剔號？')) return;
-        list.forEach(function (i) { i.done = false; }); save(); JP.router.render({ keepScroll: true });
+        list.forEach(function (i) { i.done = false; JP.sync.touch(i); }); save(); JP.router.render({ keepScroll: true });
       }, 'btn-ghost btn-block'));
     }
   }

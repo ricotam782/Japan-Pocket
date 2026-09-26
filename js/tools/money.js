@@ -268,7 +268,7 @@
           if (!(n > 0)) { ui.toast('Enter an amount 請輸入金額'); amount.focus(); return; }
           if (!payer) { ui.toast('Who paid? 誰付款？'); return; }
           if (!shares.length) { ui.toast('Pick who shares it 請選擇分擔的人'); return; }
-          var entry = { id: editing || store.uid(), date: date.value || ui.todayISO(), amount: n, cat: cat, payer: payer, shares: shares.slice(), note: note.value.trim() };
+          var entry = JP.sync.touch({ id: editing || store.uid(), date: date.value || ui.todayISO(), amount: n, cat: cat, payer: payer, shares: shares.slice(), note: note.value.trim() });
           store.update('wallet', [], function (l) {
             var i = l.findIndex(function (x) { return x.id === entry.id; });
             if (i >= 0) l[i] = entry; else l.push(entry);
@@ -296,6 +296,7 @@
 
     // End trip button
     view.appendChild(el('a', { class: 'btn btn-accent btn-block btn-big', href: '#/money/settle' }, [bi('🏁 End of trip — who owes whom?', '行程完結 — 計算誰要還錢給誰')]));
+    view.appendChild(el('a', { class: 'btn btn-ghost btn-block', href: '#/sync' }, [bi('🔄 Share expenses with partner', '與旅伴同步開支')]));
 
     // List grouped by date (newest first)
     var byDate = {};
@@ -328,6 +329,7 @@
           ui.iconButton('🗑', 'Delete 刪除', function () {
             if (!ui.confirm('Delete this expense? 確定刪除這筆開支？')) return;
             store.update('wallet', [], function (l) { return l.filter(function (x) { return x.id !== e.id; }); });
+            JP.sync.markDeleted('wallet', e.id);
             JP.router.render({ keepScroll: true });
           })
         ]));
@@ -464,6 +466,7 @@
     view.appendChild(ui.section('New trip', '新行程', [
       ui.button('Clear all expenses & start a new trip', '清除所有開支，開始新行程', function () {
         if (!ui.confirm('Delete ALL expenses? This cannot be undone. 確定刪除所有開支？此操作無法復原。')) return;
+        list.forEach(function (e) { JP.sync.markDeleted('wallet', e.id); });
         store.set('wallet', []);
         ui.toast('Cleared 已清除');
         JP.router.go('money/wallet');

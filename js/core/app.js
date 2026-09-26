@@ -13,7 +13,7 @@
 
   JP.renderHome = function (view) {
     var grid = el('nav', { class: 'tiles', 'aria-label': 'Tools 工具' });
-    JP.tools.forEach(function (t) {
+    JP.tools.filter(function (t) { return !t.hidden; }).forEach(function (t) {
       grid.appendChild(el('a', { class: 'tile tile-' + (t.color || 'slate'), href: '#/' + t.id }, [
         el('span', { class: 'tile-icon', 'aria-hidden': 'true', text: t.icon || '•' }),
         el('span', { class: 'tile-en', text: t.en }),
