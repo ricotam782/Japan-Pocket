@@ -113,7 +113,7 @@
   }
 
   JP.registerTool({
-    id: 'settings', en: 'Settings', zh: '設定', icon: '⚙️', color: 'slate', order: 90,
+    id: 'settings', en: 'Settings', zh: '設定', icon: '⚙️', color: 'slate', order: 90, hidden: true, // opened from the ⚙️ button on the home screen
     render: function (view) { render(view); }
   });
 })();
