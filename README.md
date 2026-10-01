@@ -62,8 +62,9 @@ All paths are relative, so it works from a sub-folder like `/Japan-Pocket/`. `.n
 
 ### Releasing an update
 
-Phones keep the cached copy until the service worker changes. **Whenever you change any file, bump `VERSION` in `sw.js`**
-(e.g. `jp-v1.0.0` → `jp-v1.0.1`). If you add a new file, also add it to `APP_FILES` in `sw.js`.
+Phones keep the cached copy until the service worker changes. **Whenever you change any file, bump the version in two places**: `JP.VERSION` in
+`js/core/version.js` (shown at the bottom of Settings, so you can see which version a phone is running) and
+`VERSION` in `sw.js` (`'jp-v' +` the same number, e.g. `1.4.2` → `jp-v1.4.2`). The smoke test checks they match. If you add a new file, also add it to `APP_FILES` in `sw.js`.
 Users get the new version the next time they open the app online (sometimes it takes a second launch).
 
 ## Project structure
@@ -106,7 +107,7 @@ tests/smoke.js          Automated phone-size + offline test
    ```
 
 2. Add `<script src="js/tools/mytool.js"></script>` to `index.html` (before `js/core/app.js`).
-3. Add the path to `APP_FILES` in `sw.js` and bump `VERSION`.
+3. Add the path to `APP_FILES` in `sw.js` and bump the version (`js/core/version.js` and `sw.js`).
 
 Store data with `JP.store.get(key, default)` / `JP.store.set(key, value)`. Tile colours: `indigo red gold green teal slate`.
 

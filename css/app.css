@@ -452,6 +452,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 }
 .choice-grid.three .choice { min-height: 60px; }
 .about ol { padding-left: 1.3em; }
+.app-version { text-align: center; color: var(--muted); font-weight: 650; margin: 20px 0 8px; }
+.app-version .bi { align-items: center; }
 .about li { margin: 8px 0; }
 
 /* ---------- Chain stores ---------- */
@@ -470,6 +472,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .chain-hero { border-left: 6px solid var(--t-plum); }
 .chain-summary { margin: 0; line-height: 1.6; }
 .chain-summary-status:empty { display: none; }
+.chain-fallback { margin: 4px 0 0; }
+.chain-fallback .mini-label { margin-top: 0; }
 
 /* ---------- Share / sync ---------- */
 .sync-link { margin: 4px 0 8px; }

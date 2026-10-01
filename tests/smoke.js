@@ -149,6 +149,10 @@ function check(cond, msg) {
   await page.waitForSelector('.traveller-list');
   check(page.url().endsWith('#/settings'), '⚙️ header button opens Settings');
   check(await page.locator('#settingsBtn').isHidden(), '⚙️ button hidden inside tools');
+  const shownVersion = await page.locator('#appVersion').innerText();
+  const swVersion = (fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').match(/var VERSION = 'jp-v([\d.]+)'/) || [])[1];
+  check(!!swVersion && shownVersion.includes('Version ' + swVersion) && shownVersion.includes('版本 ' + swVersion),
+    `Settings shows version ${swVersion} matching sw.js`);
   await page.goto(base);
   await noOverflow('home');
   await shot('01-home-light');
@@ -279,6 +283,11 @@ function check(cond, msg) {
   const picks = await page.locator('.chain-pick').allInnerTexts();
   check(picks.some((t) => t.includes('ねぎしフードサービス')), 'full-text Wikipedia search finds a chain that name search misses');
   check(picks.some((t) => t.includes('牛たん')), 'Wikipedia pages without a Wikidata item are offered too');
+  const gmWithResults = await page.locator('.chain-fallback a', { hasText: 'Check the name on Google Maps' }).getAttribute('href');
+  check(gmWithResults.includes(encodeURIComponent('ねぎし')), 'Google Maps check offered even when there are results');
+  check(await page.locator('.chain-fallback .btn', { hasText: 'Enter it myself' }).count() === 1, 'manual entry offered below results');
+  await noOverflow('search results with fallback');
+  await shot('19-chain-fallback');
   await page.goto(base + '#/');
   await page.goto(base + '#/chains/add');
   await page.locator('form input').fill('Zzz Mart');
