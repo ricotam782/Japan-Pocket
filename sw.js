@@ -5,7 +5,7 @@
  * Cross-origin requests (exchange-rate, translation and Wikipedia APIs) are not cached
  * here; the last exchange rate is kept in localStorage by the Money tool.
  */
-var VERSION = 'jp-v1.4.1';
+var VERSION = 'jp-v1.4.2';
 
 var APP_FILES = [
   './',

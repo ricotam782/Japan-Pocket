@@ -106,26 +106,36 @@
     }
 
     function manualButton() {
-      return ui.button('Not found? Enter it myself', '找不到？自行輸入', function () {
+      return ui.button('✎ Enter it myself', '自行輸入', function () {
         pending = { en: /^[\x00-\x7f]+$/.test(q.value) ? q.value.trim() : '', zh: /[一-鿿]/.test(q.value) && !/[぀-ヿ]/.test(q.value) ? q.value.trim() : '', ja: /[぀-ヿ]/.test(q.value) ? q.value.trim() : '' };
         JP.router.go('chains/edit/new');
       }, 'btn-ghost btn-block');
     }
 
+    /** Always offered below the results: check the name on Google Maps, or type it in. */
+    function fallback(text, hasResults) {
+      return el('div', { class: 'card chain-fallback' }, [
+        el('div', { class: 'mini-label' }, [hasResults
+          ? bi('Not the right one?', '沒有正確的一項？')
+          : bi('Other ways', '其他方法')]),
+        navigator.onLine ? el('a', {
+          class: 'btn btn-ghost btn-block', target: '_blank', rel: 'noopener',
+          href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(text)
+        }, [bi('📍 Check the name on Google Maps', '在 Google 地圖確認名稱')]) : null,
+        manualButton()
+      ]);
+    }
+
     function doSearch() {
       var text = q.value.trim();
       if (!text) { q.focus(); return; }
-      if (!navigator.onLine) { msg('Searching needs internet. You can still enter it yourself.', '搜尋需要上網，你仍可自行輸入。', true); results.appendChild(manualButton()); return; }
+      if (!navigator.onLine) { msg('Searching needs internet. You can still enter it yourself.', '搜尋需要上網，你仍可自行輸入。', true); results.appendChild(fallback(text, false)); return; }
       go.disabled = true;
       msg('Searching…', '搜尋中…');
       JP.lookup.search(text).then(function (list) {
         results.textContent = '';
         if (!list.length) {
           msg('No match found. Try adding what it sells, or enter it yourself.', '找不到相符的結果。可加上賣甚麼再搜尋，或自行輸入。', true);
-          results.appendChild(el('a', {
-            class: 'btn btn-ghost btn-block', target: '_blank', rel: 'noopener',
-            href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(text)
-          }, [bi('📍 Check the name on Google Maps', '在 Google 地圖確認名稱')]));
         } else {
           results.appendChild(el('p', { class: 'hint' }, [bi('Tap the right one:', '請選擇正確的一項：')]));
           list.forEach(function (c) {
@@ -135,10 +145,10 @@
             }, [titleBlock(c), c.desc ? el('div', { class: 'chain-desc', text: c.desc }) : null]));
           });
         }
-        results.appendChild(manualButton());
+        results.appendChild(fallback(text, list.length > 0));
       }).catch(function () {
         msg('Could not search right now.', '暫時無法搜尋。', true);
-        results.appendChild(manualButton());
+        results.appendChild(fallback(text, false));
       }).then(function () { go.disabled = false; });
     }
 
