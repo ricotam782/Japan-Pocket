@@ -121,7 +121,11 @@
       JP.lookup.search(text).then(function (list) {
         results.textContent = '';
         if (!list.length) {
-          msg('No match found.', '找不到相符的結果。', true);
+          msg('No match found. Try adding what it sells, or enter it yourself.', '找不到相符的結果。可加上賣甚麼再搜尋，或自行輸入。', true);
+          results.appendChild(el('a', {
+            class: 'btn btn-ghost btn-block', target: '_blank', rel: 'noopener',
+            href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(text)
+          }, [bi('📍 Check the name on Google Maps', '在 Google 地圖確認名稱')]));
         } else {
           results.appendChild(el('p', { class: 'hint' }, [bi('Tap the right one:', '請選擇正確的一項：')]));
           list.forEach(function (c) {
@@ -140,7 +144,8 @@
 
     view.appendChild(ui.section('Add a chain', '加連鎖店', [
       el('form', { class: 'card form', on: { submit: function (e) { e.preventDefault(); q.blur(); doSearch(); } } }, [
-        ui.field('Name (any language)', '名稱（中、英、日文都可以）', q),
+        ui.field('Name (any language)', '名稱（中、英、日文都可以）', q,
+          'Tip: if nothing is found, add what it sells, e.g. 「ねぎし 牛たん」. 提示：找不到時，可加上賣甚麼，例如「ねぎし 牛たん」。'),
         go
       ]),
       results
@@ -183,10 +188,17 @@
       });
     }
 
-    var jaHelper = ui.button('✨ Fill in Japanese automatically', '自動翻譯日文名（需上網）', function () {
-      var text = en.value.trim() || zh.value.trim();
-      if (!text) { ui.toast('Type English or Chinese first 請先輸入英文或中文'); return; }
-      JP.translate(text, en.value.trim() ? 'en' : 'zh-TW').then(function (r) { ja.value = r.ja; })
+    // Fill whichever of ja / en / zh is empty, translating from one that is filled.
+    var fields = [{ input: ja, lang: 'ja' }, { input: en, lang: 'en' }, { input: zh, lang: 'zh-TW' }];
+    var jaHelper = ui.button('✨ Fill in the other languages', '自動填寫其他語言（需上網）', function () {
+      var src = fields.filter(function (f) { return f.input.value.trim(); })[0];
+      if (!src) { ui.toast('Type a name first 請先輸入名稱'); return; }
+      var empty = fields.filter(function (f) { return !f.input.value.trim(); });
+      if (!empty.length) { ui.toast('All names are filled 所有名稱已填好'); return; }
+      ui.toast('Translating… 翻譯中…');
+      Promise.all(empty.map(function (f) {
+        return JP.translate(src.input.value.trim(), src.lang, f.lang).then(function (r) { f.input.value = r.text; });
+      })).then(function () { ui.toast('Filled in — please check 已填好，請檢查'); })
         .catch(function () { ui.toast(navigator.onLine ? 'Could not translate 暫時無法翻譯' : 'Needs internet 需要上網'); });
     }, 'btn-ghost btn-block');
 
@@ -211,9 +223,9 @@
       }, [
         el('div', { class: 'mini-label' }, [bi('Type', '類別')]), typeRow,
         ui.field('Japanese name (on the sign)', '日文名（招牌上的字）', ja),
-        jaHelper,
         ui.field('English name', '英文名', en),
         ui.field('Chinese name', '中文名', zh),
+        jaHelper,
         ui.field('What it is', '簡介', desc),
         ui.field('My notes / tips', '我的備註／貼士', note),
         summaryBox,

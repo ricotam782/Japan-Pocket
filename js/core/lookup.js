@@ -5,8 +5,11 @@
  *   candidate = {qid, ja, en, zh, desc, website, wiki: {zh, ja, en}}
  *   JP.lookup.summary(candidate) → Promise<{text, lang, url}>  (Wikipedia intro)
  *
- * Names in Japanese / English / Chinese come from Wikidata; the longer
- * description from Wikipedia (Chinese if available, else English, else Japanese).
+ * Two searches run together: Wikidata labels (exact / prefix name match) and
+ * Wikipedia full-text search (finds smaller chains mentioned in article text,
+ * e.g. 「ねぎし 牛たん」). Names in Japanese / English / Chinese come from
+ * Wikidata; the longer description from Wikipedia (Chinese if available,
+ * else English, else Japanese).
  * Needs internet. Results are saved by the caller, so they work offline later.
  */
 window.JP = window.JP || {};
@@ -59,27 +62,66 @@ JP.lookup = (function () {
     };
   }
 
+  /** Wikidata label search → item ids. */
+  function labelSearch(q, lang) {
+    return getJSON(WD + 'action=wbsearchentities&type=item&limit=7&language=' + lang +
+      '&uselang=' + lang + '&search=' + encodeURIComponent(q))
+      .then(function (j) { return (j.search || []).map(function (s) { return { qid: s.id }; }); })
+      .catch(function () { return []; });
+  }
+
+  /** Wikipedia full-text search → [{qid} or {page: {lang, title, desc}}]. */
+  function textSearch(q, lang) {
+    var wiki = lang === 'zh' ? 'zh' : lang;
+    var url = 'https://' + wiki + '.wikipedia.org/w/api.php?format=json&origin=*&action=query' +
+      '&generator=search&gsrlimit=5&gsrnamespace=0&prop=pageprops|description&ppprop=wikibase_item' +
+      (wiki === 'zh' ? '&variant=zh-hk' : '') + '&gsrsearch=' + encodeURIComponent(q);
+    return getJSON(url).then(function (j) {
+      var pages = (j.query && j.query.pages) || {};
+      return Object.keys(pages).map(function (k) { return pages[k]; })
+        .sort(function (a, b) { return (a.index || 0) - (b.index || 0); })
+        .map(function (p) {
+          var qid = p.pageprops && p.pageprops.wikibase_item;
+          return qid ? { qid: qid } : { page: { lang: wiki, title: p.title, desc: p.description || '' } };
+        });
+    }).catch(function () { return []; });
+  }
+
+  /** A Wikipedia page with no Wikidata item still makes a usable candidate. */
+  function pageCandidate(p) {
+    var c = { qid: '', ja: '', en: '', zh: '', desc: p.desc, website: '', wiki: { zh: '', ja: '', en: '' } };
+    c[p.lang] = p.title;
+    c.wiki[p.lang] = p.title;
+    return c;
+  }
+
   function search(q) {
     q = String(q || '').trim();
     if (!q) return Promise.reject(new Error('empty'));
     if (!navigator.onLine) return Promise.reject(new Error('offline'));
-    return Promise.all(searchLangs(q).map(function (lang) {
-      return getJSON(WD + 'action=wbsearchentities&type=item&limit=7&language=' + lang +
-        '&uselang=' + lang + '&search=' + encodeURIComponent(q))
-        .then(function (j) { return (j.search || []).map(function (s) { return s.id; }); })
-        .catch(function () { return []; });
-    })).then(function (lists) {
-      var ids = [];
-      lists.forEach(function (l) { l.forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); }); });
-      ids = ids.slice(0, 8);
-      if (!ids.length) return [];
+    var langs = searchLangs(q);
+    // Label matches first (most precise), then full-text matches.
+    var jobs = langs.map(function (l) { return labelSearch(q, l); })
+      .concat(langs.map(function (l) { return textSearch(q, l); }));
+    return Promise.all(jobs).then(function (lists) {
+      var ids = [], pages = [];
+      lists.forEach(function (l) {
+        l.forEach(function (r) {
+          if (r.qid) { if (ids.indexOf(r.qid) < 0) ids.push(r.qid); }
+          else if (!pages.some(function (p) { return p.title === r.page.title; })) pages.push(r.page);
+        });
+      });
+      ids = ids.slice(0, 10);
+      var fromPages = pages.slice(0, 4).map(pageCandidate);
+      if (!ids.length) return fromPages;
       return getJSON(WD + 'action=wbgetentities&props=labels|descriptions|claims|sitelinks&languages=ja|en|' +
         ZH.join('|') + '&ids=' + ids.join('|'))
         .then(function (j) {
           return ids.map(function (id) { return j.entities && j.entities[id]; })
             .filter(function (e) { return e && !e.missing; })
             .map(toCandidate)
-            .filter(function (c) { return c.ja || c.en || c.zh; });
+            .filter(function (c) { return c.ja || c.en || c.zh; })
+            .concat(fromPages);
         });
     });
   }

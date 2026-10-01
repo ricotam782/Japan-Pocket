@@ -62,8 +62,9 @@ function check(cond, msg) {
   let googleUp = true;
   await context.route(/translate\.googleapis\.com/, (route) => {
     if (!googleUp) return route.fulfill({ status: 429, body: 'busy' });
-    const q = new URL(route.request().url()).searchParams.get('q');
-    const ja = q.includes('toilet') ? 'トイレはどこですか？' : 'テスト';
+    const u = new URL(route.request().url());
+    const q = u.searchParams.get('q'), tl = u.searchParams.get('tl');
+    const ja = tl === 'en' ? 'Zzz Mart (en)' : tl === 'zh-TW' ? '測試商店' : q.includes('toilet') ? 'トイレはどこですか？' : 'テスト';
     route.fulfill({
       status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify([[[ja, q, null, null, 10], [null, null, 'Toire wa doko desu ka?', null]], null, 'en'])
@@ -84,15 +85,32 @@ function check(cond, msg) {
       const hit = /一蘭|ichiran/i.test(q);
       return route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ search: hit ? [{ id: 'Q1' }] : [] }) });
     }
-    route.fulfill({
-      status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ entities: { Q1: {
+    const ENT = {
+      Q1: {
         id: 'Q1',
         labels: { ja: { value: '一蘭' }, en: { value: 'Ichiran' }, 'zh-hk': { value: '一蘭拉麵' } },
         descriptions: { 'zh-hk': { value: '日本拉麵連鎖店' }, en: { value: 'Japanese ramen chain' } },
         claims: { P856: [{ mainsnak: { datavalue: { value: 'https://ichiran.com' } } }] },
         sitelinks: { zhwiki: { title: '一蘭' }, enwiki: { title: 'Ichiran' } }
-      } } })
-    });
+      },
+      Q2: {
+        id: 'Q2', labels: { ja: { value: 'ねぎしフードサービス' } },
+        descriptions: { ja: { value: '牛たん料理店「ねぎし」を運営する企業' } }, claims: {}, sitelinks: { jawiki: { title: 'ねぎしフードサービス' } }
+      }
+    };
+    const ids = (u.searchParams.get('ids') || '').split('|');
+    const entities = {};
+    ids.forEach((id) => { if (ENT[id]) entities[id] = ENT[id]; });
+    route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ entities }) });
+  });
+  // Wikipedia full-text search: only "ねぎし" finds an article (company page linked to Q2) plus one page with no item.
+  await context.route(/wikipedia\.org\/w\/api\.php/, (route) => {
+    const q = new URL(route.request().url()).searchParams.get('gsrsearch') || '';
+    const body = /ねぎし/.test(q) ? { query: { pages: {
+      10: { index: 1, title: 'ねぎしフードサービス', pageprops: { wikibase_item: 'Q2' } },
+      11: { index: 2, title: '牛たん', description: '牛の舌を使った料理' }
+    } } } : {};
+    route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
   });
   await context.route(/wikipedia\.org\/api/, (route) => {
     wikiLang = route.request().headers()['accept-language'] || '';
@@ -253,12 +271,27 @@ function check(cond, msg) {
   await page.locator('.show-close').click();
   await noOverflow('chain detail');
   await shot('17-chain-detail');
+  await page.goto(base + '#/');
+  await page.goto(base + '#/chains/add');
+  await page.locator('form input').fill('ねぎし 牛たん');
+  await page.locator('form button[type=submit]').click();
+  await page.waitForSelector('.chain-pick');
+  const picks = await page.locator('.chain-pick').allInnerTexts();
+  check(picks.some((t) => t.includes('ねぎしフードサービス')), 'full-text Wikipedia search finds a chain that name search misses');
+  check(picks.some((t) => t.includes('牛たん')), 'Wikipedia pages without a Wikidata item are offered too');
+  await page.goto(base + '#/');
   await page.goto(base + '#/chains/add');
   await page.locator('form input').fill('Zzz Mart');
   await page.locator('form button[type=submit]').click();
   await page.waitForSelector('.chain-results .tr-msg.warn');
+  const gm = await page.locator('a', { hasText: 'Check the name on Google Maps' }).getAttribute('href');
+  check(gm.includes('google.com/maps/search') && gm.includes('Zzz'), 'not found → Google Maps check link');
   await page.locator('.btn', { hasText: 'Enter it myself' }).click();
   check((await page.locator('form input[type=text]').nth(1).inputValue()) === 'Zzz Mart', 'not found → manual form keeps the typed English name');
+  await page.locator('.btn', { hasText: 'Fill in the other languages' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('form input[type=text]')[2].value.length > 0);
+  const filled = await page.locator('form input[type=text]').evaluateAll((els) => els.slice(0, 3).map((e) => e.value));
+  check(filled[0] === 'テスト' && filled[1] === 'Zzz Mart' && filled[2] === '測試商店', 'empty Japanese + Chinese names filled from the English one');
   await page.locator('.choice', { hasText: 'Shopping' }).click();
   await page.locator('form button[type=submit]').click();
   await page.waitForSelector('.chain-hero');
