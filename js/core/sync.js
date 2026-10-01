@@ -26,6 +26,7 @@ JP.sync = (function () {
     { id: 'shopping', key: 'list.shopping', kind: 'list', en: 'Shopping list', zh: '購物清單', def: true, byText: true },
     { id: 'omiyage', key: 'list.omiyage', kind: 'list', en: 'Omiyage list', zh: '手信清單', def: true, byText: true },
     { id: 'taxi', key: 'taxi', kind: 'list', en: 'Taxi destinations', zh: '的士目的地', def: true },
+    { id: 'chains', key: 'chains', kind: 'list', en: 'Chain stores', zh: '連鎖店', def: true },
     { id: 'packing', key: 'list.packing', kind: 'list', en: 'Packing list', zh: '行李清單', def: false, byText: true },
     { id: 'phrases', key: 'phrases.custom', kind: 'list', en: 'My phrase cards', zh: '我的句子', def: false }
   ];

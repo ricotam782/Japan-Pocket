@@ -73,6 +73,33 @@ function check(cond, msg) {
     status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
     body: JSON.stringify({ responseData: { translatedText: '駅はどこですか？' }, responseStatus: 200 })
   }));
+  // Wikidata / Wikipedia (chain store lookup) are mocked as well.
+  let wikiLang = '';
+  const CORS = { 'Access-Control-Allow-Origin': '*' };
+  await context.route(/wikidata\.org/, (route) => {
+    const u = new URL(route.request().url());
+    const action = u.searchParams.get('action');
+    if (action === 'wbsearchentities') {
+      const q = u.searchParams.get('search');
+      const hit = /一蘭|ichiran/i.test(q);
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ search: hit ? [{ id: 'Q1' }] : [] }) });
+    }
+    route.fulfill({
+      status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ entities: { Q1: {
+        id: 'Q1',
+        labels: { ja: { value: '一蘭' }, en: { value: 'Ichiran' }, 'zh-hk': { value: '一蘭拉麵' } },
+        descriptions: { 'zh-hk': { value: '日本拉麵連鎖店' }, en: { value: 'Japanese ramen chain' } },
+        claims: { P856: [{ mainsnak: { datavalue: { value: 'https://ichiran.com' } } }] },
+        sitelinks: { zhwiki: { title: '一蘭' }, enwiki: { title: 'Ichiran' } }
+      } } })
+    });
+  });
+  await context.route(/wikipedia\.org\/api/, (route) => {
+    wikiLang = route.request().headers()['accept-language'] || '';
+    route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({
+      extract: '一蘭是源自福岡的豚骨拉麵連鎖店。', content_urls: { mobile: { page: 'https://zh.m.wikipedia.org/wiki/一蘭' } }
+    }) });
+  });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -98,12 +125,19 @@ function check(cond, msg) {
   await page.goto(base);
   await page.waitForSelector('.tile');
   check(await page.locator('.tile').count() === 6, '6 tool tiles on home screen');
+  const tileText = await page.locator('.tiles').innerText();
+  check(tileText.includes('Chain stores') && !tileText.includes('Settings'), 'Chain stores tile shown; Settings moved off the grid');
+  await page.locator('#settingsBtn').click();
+  await page.waitForSelector('.traveller-list');
+  check(page.url().endsWith('#/settings'), '⚙️ header button opens Settings');
+  check(await page.locator('#settingsBtn').isHidden(), '⚙️ button hidden inside tools');
+  await page.goto(base);
   await noOverflow('home');
   await shot('01-home-light');
 
   console.log('Every tool renders on a narrow screen');
   const routes = ['phrases', 'phrases/taxi', 'phrases/food', 'phrases/edit', 'money', 'money/wallet', 'money/settle',
-    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/shopping', 'lists/omiyage', 'settings', 'sync'];
+    'safety', 'safety/medical/t1', 'tips', 'tips/garbage', 'tips/etiquette', 'lists', 'lists/shopping', 'lists/omiyage', 'chains', 'chains/add', 'settings', 'sync'];
   for (const r of routes) {
     await page.goto(base + '#/' + r);
     await page.waitForTimeout(150);
@@ -191,6 +225,50 @@ function check(cond, msg) {
   await noOverflow('shopping list');
   await shot('12-shopping');
 
+  console.log('Chain stores');
+  await page.goto(base + '#/chains/add');
+  await page.locator('form input').fill('一蘭');
+  await page.locator('form button[type=submit]').click();
+  await page.waitForSelector('.chain-pick');
+  check((await page.locator('.chain-pick').first().innerText()).includes('Ichiran'), 'search by name finds a match');
+  await noOverflow('chain search results');
+  await shot('16-chain-search');
+  await page.locator('.chain-pick').first().click();
+  await page.waitForFunction(() => ((document.querySelector('.chain-summary-status') || {}).textContent || '').includes('✓'));
+  const vals = await page.locator('form input[type=text]').evaluateAll((els) => els.map((e) => e.value));
+  check(vals.includes('一蘭') && vals.includes('Ichiran') && vals.includes('一蘭拉麵') && vals.includes('日本拉麵連鎖店'), 'names in ja/en/zh + description filled automatically');
+  check(wikiLang === 'zh-hk', 'Wikipedia asked for Traditional Chinese');
+  await page.locator('form textarea').fill('Booth seats, order sheet in English');
+  await page.locator('form button[type=submit]').click();
+  await page.waitForSelector('.chain-hero');
+  check((await page.locator('.chain-ja-big').innerText()) === '一蘭', 'detail shows Japanese sign name big');
+  check((await page.locator('.chain-summary').innerText()).includes('福岡'), 'Wikipedia description saved');
+  const maps = await page.locator('a', { hasText: 'Nearby branches' }).getAttribute('href');
+  check(maps.startsWith('https://www.google.com/maps/search/') && maps.includes(encodeURIComponent('一蘭')), 'Nearby opens Google Maps search');
+  await page.locator('.choice', { hasText: 'Want to go' }).click();
+  await page.waitForTimeout(80);
+  check(await page.locator('.choice.active', { hasText: 'Want to go' }).count() === 1, '★ want to go toggles');
+  await page.locator('.btn', { hasText: 'Is there one nearby' }).click();
+  check((await page.locator('.show-ja').innerText()).includes('この近くに「一蘭」はありますか'), 'ask-nearby card shown fullscreen');
+  await page.locator('.show-close').click();
+  await noOverflow('chain detail');
+  await shot('17-chain-detail');
+  await page.goto(base + '#/chains/add');
+  await page.locator('form input').fill('Zzz Mart');
+  await page.locator('form button[type=submit]').click();
+  await page.waitForSelector('.chain-results .tr-msg.warn');
+  await page.locator('.btn', { hasText: 'Enter it myself' }).click();
+  check((await page.locator('form input[type=text]').nth(1).inputValue()) === 'Zzz Mart', 'not found → manual form keeps the typed English name');
+  await page.locator('.choice', { hasText: 'Shopping' }).click();
+  await page.locator('form button[type=submit]').click();
+  await page.waitForSelector('.chain-hero');
+  await page.goto(base + '#/chains');
+  check((await page.locator('.chain-list').innerText()).includes('一蘭') && (await page.locator('.chain-badges').first().innerText()).includes('想去'), 'list shows chain with ★ badge');
+  await page.locator('.tab', { hasText: 'Shopping' }).click();
+  check((await page.locator('.chain-list').innerText()).includes('Zzz Mart'), 'shopping tab lists the shop');
+  await page.locator('.tab', { hasText: 'Restaurants' }).click();
+  await shot('18-chains');
+
   console.log('Settings: add a third traveller');
   await page.goto(base + '#/settings');
   const names = page.locator('.traveller input');
@@ -266,7 +344,7 @@ function check(cond, msg) {
   await page.reload();
   await page.waitForSelector('.tile');
   check(await page.locator('.tile').count() === 6, 'home loads offline');
-  for (const r of ['phrases', 'money', 'money/wallet', 'safety', 'tips', 'lists', 'settings']) {
+  for (const r of ['phrases', 'money', 'money/wallet', 'safety', 'tips', 'lists', 'chains', 'settings']) {
     await page.goto(base + '#/' + r);
     await page.waitForTimeout(100);
     check((await page.locator('#view').innerText()).trim().length > 20, `#/${r} works offline`);
@@ -279,6 +357,8 @@ function check(cond, msg) {
   await page.goto(base + '#/money');
   await page.waitForTimeout(200);
   const offRate = await page.locator('.rate-sub').innerText();
+  await page.goto(base + '#/chains');
+  check((await page.locator('.chain-list').innerText()).includes('一蘭'), 'saved chains readable offline');
   check(offRate.includes('2026-09-23') && offRate.toLowerCase().includes('offline'), 'offline uses saved rate with date');
   await page.goto(base + '#/money/wallet');
   check((await page.locator('.stat-yen').nth(1).innerText()) === '¥9,900', 'wallet data still there offline');

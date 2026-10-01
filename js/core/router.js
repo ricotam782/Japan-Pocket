@@ -43,6 +43,9 @@ JP.router = (function () {
       back.hidden = true;
       document.title = 'Japan Pocket';
     }
+    // The settings button lives on the home screen only.
+    var gear = document.getElementById('settingsBtn');
+    if (gear) gear.hidden = !!tool;
   }
 
   /** Redraw the current route. render({keepScroll: true}) keeps the scroll position. */

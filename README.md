@@ -12,7 +12,8 @@ Designed for iPhone (Safari), with large text, big buttons, English labels with 
 | 🆘 **Safety 安全** | One-tap 110 / 119, what to say when they answer, medical info card per traveller (Japanese + English), Canadian Embassy in Tokyo, 24/7 Ottawa emergency line, emergency phrase cards |
 | 📋 **Cheat sheets 貼士** | Toilet buttons, garbage sorting, etiquette |
 | ✅ **Lists 清單** | Packing checklist, shopping list (with where to buy) and omiyage (souvenir) list |
-| ⚙️ **Settings 設定** | Travellers (unlimited), theme, backup / restore / erase, **🔄 share with partner** |
+| 🏪 **Chain stores 連鎖店** | Your own list of restaurant / shop chains: type a name, pick the match, and Japanese (sign) / English / Chinese names plus a description are filled in from Wikidata / Wikipedia. ★ want to go, ✓ been, notes, 📍 nearby branches in Google Maps, "is there one nearby?" card |
+| ⚙️ **Settings 設定** (⚙️ button, top right of home) | Travellers (unlimited), theme, backup / restore / erase, **🔄 share with partner** |
 
 All data stays in `localStorage` on the phone. There is no backend, no account and no tracking.
 
@@ -77,6 +78,7 @@ js/core/
   store.js              localStorage helpers (keys prefixed "jp.")
   translate.js          In-app translation (English/Chinese → Japanese)
   sync.js               Share packages + merge logic for syncing two phones
+  lookup.js             Chain-store lookup by name (Wikidata + Wikipedia, no key)
   ui.js                 Element builder, bilingual labels, speech, show mode, phrase cards, tabs, formatting
   registry.js           JP.registerTool() — tools add themselves to the home screen
   router.js             Hash routes (#/money/wallet)
@@ -129,5 +131,8 @@ node tests/smoke.js                # add a folder name to also save screenshots
 - In-app translation (`js/core/translate.js`) uses Google's free public web endpoint (no key) and falls back to
   [MyMemory](https://mymemory.translated.net). The Google endpoint is unofficial and could change; if both fail,
   the app offers a link to open Google Translate instead.
+- Chain-store lookup uses the free Wikidata and Wikipedia APIs (no key). Results are saved on the phone, so
+  saved chains work offline; adding a new one needs the internet. "Nearby branches" opens a Google Maps search
+  link (no API key, opens in the Maps app).
 - The wallet splits each expense evenly among the people ticked under "Shared by"; any leftover
   yen from rounding goes to the first people in the list. Settlement needs at most (number of people − 1) transfers.
