@@ -108,7 +108,10 @@
         el('li', {}, [bi('Choose "Add to Home Screen".', '選擇「加入主畫面」。')]),
         el('li', {}, [bi('Open it once while online — then it works offline.', '上網時先開啟一次，之後離線亦可使用。')])
       ]),
-      el('p', { class: 'hint', text: 'Japan Pocket · v1' })
+    ]));
+
+    view.appendChild(el('div', { class: 'app-version', id: 'appVersion' }, [
+      bi('Japan Pocket · Version ' + JP.VERSION, '版本 ' + JP.VERSION)
     ]));
   }
 

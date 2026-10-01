@@ -1,7 +1,8 @@
 /*
  * Service worker — makes Japan Pocket work offline.
  * App files are cached on install (cache-first). Bump VERSION whenever
- * you change any file so phones pick up the new version.
+ * you change any file so phones pick up the new version, and keep it equal
+ * to 'jp-v' + JP.VERSION in js/core/version.js (shown in Settings).
  * Cross-origin requests (exchange-rate, translation and Wikipedia APIs) are not cached
  * here; the last exchange rate is kept in localStorage by the Money tool.
  */
@@ -17,6 +18,7 @@ var APP_FILES = [
   'icons/icon-512.png',
   'icons/maskable-512.png',
   'icons/apple-touch-icon.png',
+  'js/core/version.js',
   'js/core/store.js',
   'js/core/ui.js',
   'js/core/registry.js',

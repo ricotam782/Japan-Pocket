@@ -149,6 +149,10 @@ function check(cond, msg) {
   await page.waitForSelector('.traveller-list');
   check(page.url().endsWith('#/settings'), '⚙️ header button opens Settings');
   check(await page.locator('#settingsBtn').isHidden(), '⚙️ button hidden inside tools');
+  const shownVersion = await page.locator('#appVersion').innerText();
+  const swVersion = (fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').match(/var VERSION = 'jp-v([\d.]+)'/) || [])[1];
+  check(!!swVersion && shownVersion.includes('Version ' + swVersion) && shownVersion.includes('版本 ' + swVersion),
+    `Settings shows version ${swVersion} matching sw.js`);
   await page.goto(base);
   await noOverflow('home');
   await shot('01-home-light');
