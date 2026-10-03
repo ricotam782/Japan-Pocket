@@ -229,6 +229,25 @@ function check(cond, msg) {
   const transport = await page.locator('.phrase-list').innerText();
   check(transport.includes('無効印をお願いします') && transport.includes('有人改札はどこですか'), 'transport cards: keep ticket as souvenir + staffed gate');
 
+  console.log('Arrange phrase cards');
+  await page.locator('.tab', { hasText: 'Restaurant' }).click();
+  const before = await page.locator('.phrase-list .phrase-card .phrase-en').allInnerTexts();
+  await page.locator('.btn', { hasText: 'Arrange order' }).click();
+  check(await page.locator('.arrange-row').count() === before.length, 'arrange mode lists every card with ▲ ▼');
+  check(await page.locator('.arrange-row').first().locator('button[aria-label^="Move up"]').isDisabled(), '▲ disabled on the first card');
+  await noOverflow('arrange mode');
+  await shot('20-arrange');
+  await page.locator('.arrange-row').first().locator('button[aria-label^="Move down"]').click();
+  await page.locator('.arrange-bar .btn', { hasText: 'Done' }).click();
+  await page.reload();
+  const after = await page.locator('.phrase-list .phrase-card .phrase-en').allInnerTexts();
+  check(after[0] === before[1] && after[1] === before[0], 'moved card stays in its new place after reload');
+  await page.locator('.btn', { hasText: 'Arrange order' }).click();
+  await page.locator('.arrange-bar .btn', { hasText: 'Reset order' }).click();
+  await page.locator('.arrange-bar .btn', { hasText: 'Done' }).click();
+  const reset = await page.locator('.phrase-list .phrase-card .phrase-en').allInnerTexts();
+  check(reset[0] === before[0], 'reset order restores the original order');
+
   console.log('Food + taxi cards');
   await page.goto(base + '#/phrases/food');
   await page.locator('.check', { hasText: 'Shellfish' }).click();
