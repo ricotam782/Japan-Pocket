@@ -4,4 +4,4 @@
  * (sw.js uses 'jp-v' + this number). tests/smoke.js checks they match.
  */
 window.JP = window.JP || {};
-JP.VERSION = '1.4.2';
+JP.VERSION = '1.4.3';

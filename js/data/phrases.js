@@ -58,7 +58,9 @@ JP.data.phrases = {
     { id: 't7', en: 'Please stop here.', zh: '請在這裡停車。', ja: 'ここで止めてください。', romaji: 'Koko de tomete kudasai.' },
     { id: 't8', en: 'Where is the elevator?', zh: '電梯在哪裡？', ja: 'エレベーターはどこですか？', romaji: 'Erebētā wa doko desu ka?' },
     { id: 't9', en: 'Where is the toilet?', zh: '洗手間在哪裡？', ja: 'トイレはどこですか？', romaji: 'Toire wa doko desu ka?' },
-    { id: 't10', en: 'Where are the coin lockers?', zh: '投幣式儲物櫃在哪裡？', ja: 'コインロッカーはどこですか？', romaji: 'Koin rokkā wa doko desu ka?' }
+    { id: 't10', en: 'Where are the coin lockers?', zh: '投幣式儲物櫃在哪裡？', ja: 'コインロッカーはどこですか？', romaji: 'Koin rokkā wa doko desu ka?' },
+    { id: 't11', en: 'I would like to keep my ticket as a souvenir. Could you stamp it "void", please?', zh: '我想把車票留作紀念，請幫我蓋上「無效」印。', ja: '記念に持ち帰りたいです。無効印をお願いします。', romaji: 'Kinen ni mochikaeritai desu. Mukō-in o onegai shimasu.' },
+    { id: 't12', en: 'Where is the staffed ticket gate?', zh: '有職員的人工閘口在哪裡？', ja: '有人改札はどこですか？', romaji: 'Yūjin kaisatsu wa doko desu ka?' }
   ],
   help: [
     { id: 'x1', en: 'Excuse me.', zh: '不好意思。', ja: 'すみません。', romaji: 'Sumimasen.' },
