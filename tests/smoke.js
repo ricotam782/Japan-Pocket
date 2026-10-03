@@ -63,11 +63,11 @@ function check(cond, msg) {
   await context.route(/translate\.googleapis\.com/, (route) => {
     if (!googleUp) return route.fulfill({ status: 429, body: 'busy' });
     const u = new URL(route.request().url());
-    const q = u.searchParams.get('q'), tl = u.searchParams.get('tl');
+    const q = u.searchParams.get('q'), tl = u.searchParams.get('tl'), sl = u.searchParams.get('sl');
     const ja = tl === 'en' ? 'Zzz Mart (en)' : tl === 'zh-TW' ? '測試商店' : q.includes('toilet') ? 'トイレはどこですか？' : 'テスト';
     route.fulfill({
       status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify([[[ja, q, null, null, 10], [null, null, 'Toire wa doko desu ka?', null]], null, 'en'])
+      body: JSON.stringify([[[ja, q, null, null, 10], [null, null, 'Toire wa doko desu ka?', sl === 'ja' ? 'Kinen ni mochikaeritai desu.' : null]], null, 'en'])
     });
   });
   await context.route(/mymemory/, (route) => route.fulfill({
@@ -213,9 +213,21 @@ function check(cond, msg) {
   googleUp = true;
   await page.goto(base + '#/phrases/edit');
   await page.locator('input').first().fill('Where is the toilet?');
-  await page.locator('.btn', { hasText: 'Fill in Japanese' }).click();
+  await page.locator('.btn', { hasText: 'Fill in the missing languages' }).click();
   await page.waitForFunction(() => document.querySelector('textarea.input-ja').value.length > 0);
   check((await page.locator('textarea.input-ja').inputValue()) === 'トイレはどこですか？', 'add-card form fills Japanese automatically');
+  await page.goto(base + '#/');
+  await page.goto(base + '#/phrases/edit');
+  await page.locator('textarea.input-ja').fill('記念に持ち帰りたいです。');
+  await page.locator('.btn', { hasText: 'Fill in the missing languages' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('form input[type=text]')[1].value.length > 0);
+  const fromJa = await page.locator('form input[type=text]').evaluateAll((els) => els.slice(0, 3).map((e) => e.value));
+  check(fromJa[0] === 'Zzz Mart (en)' && fromJa[1] === '測試商店', 'Japanese pasted first → English + Chinese filled from it');
+  check(fromJa[2] === 'Kinen ni mochikaeritai desu.', 'reading (romaji) filled from the Japanese');
+  await page.goto(base + '#/phrases');
+  await page.locator('.tab', { hasText: 'Transport' }).click();
+  const transport = await page.locator('.phrase-list').innerText();
+  check(transport.includes('無効印をお願いします') && transport.includes('有人改札はどこですか'), 'transport cards: keep ticket as souvenir + staffed gate');
 
   console.log('Food + taxi cards');
   await page.goto(base + '#/phrases/food');

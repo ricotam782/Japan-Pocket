@@ -228,20 +228,32 @@
       type: 'button', class: 'btn btn-ghost btn-block',
       on: {
         click: function () {
-          var text = en.value.trim() || zh.value.trim();
-          if (!text) { ui.toast('Type English or Chinese first 請先輸入英文或中文'); return; }
+          // Already have the Japanese (e.g. copied from a guide)? Translate it into the empty English / Chinese
+          // fields — Japanese → English/Chinese is usually more accurate. Otherwise translate into Japanese.
+          var jobs = [];
+          if (ja.value.trim()) {
+            var src = ja.value.trim();
+            if (!en.value.trim()) jobs.push(JP.translate(src, 'ja', 'en').then(function (r) { en.value = r.text; if (r.romaji && !romaji.value.trim()) romaji.value = r.romaji; }));
+            if (!zh.value.trim()) jobs.push(JP.translate(src, 'ja', 'zh-TW').then(function (r) { zh.value = r.text; }));
+            if (!jobs.length) { ui.toast('All filled in 已全部填好'); return; }
+          } else {
+            var text = en.value.trim() || zh.value.trim();
+            if (!text) { ui.toast('Type English, Chinese or Japanese first 請先輸入英文、中文或日文'); return; }
+            jobs.push(JP.translate(text, en.value.trim() ? 'en' : 'zh-TW').then(function (r) {
+              ja.value = r.ja;
+              if (r.romaji) romaji.value = r.romaji;
+            }));
+          }
           helper.disabled = true;
           ui.toast('Translating… 翻譯中…');
-          JP.translate(text, en.value.trim() ? 'en' : 'zh-TW').then(function (r) {
-            ja.value = r.ja;
-            if (r.romaji) romaji.value = r.romaji;
-            ui.toast('Japanese filled in — please check 已填入日文，請檢查');
+          Promise.all(jobs).then(function () {
+            ui.toast('Filled in — please check 已填好，請檢查');
           }).catch(function () {
             ui.toast(navigator.onLine ? 'Could not translate 暫時無法翻譯' : 'Needs internet 需要上網');
           }).then(function () { helper.disabled = false; });
         }
       }
-    }, [bi('✨ Fill in Japanese automatically', '自動翻譯成日文（需上網）')]);
+    }, [bi('✨ Fill in the missing languages', '自動填寫其他語言（需上網）')]);
 
     view.appendChild(ui.section(card.id ? 'Edit card' : 'New card', card.id ? '編輯句子' : '新增句子', [
       el('form', {
@@ -264,8 +276,9 @@
       }, [
         ui.field('English', '英文', en),
         ui.field('Chinese', '中文', zh),
+        ui.field('Japanese (shown to staff)', '日文（給店員看）', ja,
+          'Already have the Japanese? Paste it here, then tap the button below to fill in English and Chinese. 已有日文？貼在這裡，再按下面的按鈕自動填寫英文和中文。'),
         helper,
-        ui.field('Japanese (shown to staff)', '日文（給店員看）', ja),
         ui.field('Reading (optional)', '讀音（可不填）', romaji),
         ui.field('Category', '分類', cat),
         el('div', { class: 'btn-row' }, [

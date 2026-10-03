@@ -6,6 +6,7 @@
  * JP.translate('Where is the toilet?', 'en') → Promise<{ja, romaji, source}>
  * JP.translate('ねぎし', 'ja', 'zh-TW')         → Promise<{text, ...}>  (other target languages)
  * `text` is always the translation; `ja` is kept as an alias for Japanese targets.
+ * `romaji` is the reading of whichever side is Japanese (when Google provides it).
  */
 window.JP = window.JP || {};
 
@@ -29,14 +30,17 @@ JP.translate = (function () {
     return withTimeout(url).then(function (data) {
       // data[0] = [[translated, original, ...], ..., [null, null, romaji, sourceReading]]
       var parts = (data && data[0]) || [];
-      var ja = '', romaji = '';
+      var ja = '', romaji = '', srcReading = '';
       parts.forEach(function (p) {
         if (!Array.isArray(p)) return;
         if (typeof p[0] === 'string') ja += p[0];
-        else if (p[0] === null && typeof p[2] === 'string') romaji = p[2];
+        else if (p[0] === null) {
+          if (typeof p[2] === 'string') romaji = p[2];
+          if (typeof p[3] === 'string') srcReading = p[3];
+        }
       });
       if (!ja.trim()) throw new Error('empty');
-      return { text: ja.trim(), ja: ja.trim(), romaji: tl === 'ja' ? romaji.trim() : '', source: 'Google' };
+      return { text: ja.trim(), ja: ja.trim(), romaji: tl === 'ja' ? romaji.trim() : (sl === 'ja' ? srcReading.trim() : ''), source: 'Google' };
     });
   }
 
