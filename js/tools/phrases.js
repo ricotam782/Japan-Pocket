@@ -10,6 +10,7 @@
  * Storage: phrases.custom  [{id, cat, en, zh, ja, romaji}]
  *          phrases.favs    [phrase ids]
  *          phrases.tab     last category tab
+ *          phrases.order   {tabId: [phrase ids]} — your own card order per tab
  *          phrases.history last 10 translations [{id, en, zh, ja, romaji}]
  *          taxi            [{id, label, name, address, phone}]
  *          food            {selected: [ids], extra: ''}
@@ -158,9 +159,25 @@
 
     var listWrap = el('div', { class: 'phrase-list' });
     var tabBar;
+    var arranging = false; // "Arrange" mode: ▲ ▼ buttons instead of full cards
+
+    /** Apply the saved order for this tab; cards not in it (e.g. newly added) keep their place at the end. */
+    function ordered(cards) {
+      var ids = (store.get('phrases.order', {})[tab]) || [];
+      var pos = {};
+      ids.forEach(function (id, i) { pos[id] = i; });
+      return cards.map(function (c, i) { return { c: c, k: c.id in pos ? pos[c.id] : ids.length + i }; })
+        .sort(function (a, b) { return a.k - b.k; })
+        .map(function (x) { return x.c; });
+    }
+
+    function saveOrder(cards) {
+      store.update('phrases.order', {}, function (o) { o[tab] = cards.map(function (c) { return c.id; }); });
+    }
+
     function drawTabs() {
       var nb = ui.tabs(tabItems, tab, function (id) {
-        tab = id; store.set('phrases.tab', id); drawTabs(); drawList();
+        tab = id; arranging = false; store.set('phrases.tab', id); drawTabs(); drawList();
       });
       if (tabBar) tabBar.replaceWith(nb);
       tabBar = nb;
@@ -175,10 +192,48 @@
         cards = allPresets().concat(custom).filter(function (p) { return favList.indexOf(p.id) >= 0; });
       } else if (tab === 'mine') {
         cards = custom;
-        listWrap.appendChild(ui.button('+ Add my own card', '新增自己的句子', function () { JP.router.go('phrases/edit'); }, 'btn-primary btn-block'));
+        if (!arranging) listWrap.appendChild(ui.button('+ Add my own card', '新增自己的句子', function () { JP.router.go('phrases/edit'); }, 'btn-primary btn-block'));
       } else {
         cards = allPresets().filter(function (p) { return p.cat === tab; })
           .concat(custom.filter(function (p) { return p.cat === tab; }));
+      }
+      cards = ordered(cards);
+
+      if (cards.length > 1) {
+        listWrap.appendChild(arranging
+          ? el('div', { class: 'btn-row arrange-bar' }, [
+            ui.button('✓ Done', '完成', function () { arranging = false; drawList(); }, 'btn-primary'),
+            ui.button('Reset order', '回復預設次序', function () {
+              if (!ui.confirm('Reset this tab to the original order? 確定回復此分頁的預設次序？')) return;
+              store.update('phrases.order', {}, function (o) { delete o[tab]; });
+              drawList();
+            }, 'btn-ghost')
+          ])
+          : ui.button('↕ Arrange order', '排位置', function () { arranging = true; drawList(); }, 'btn-ghost btn-block arrange-btn'));
+      }
+
+      if (arranging) {
+        listWrap.appendChild(el('p', { class: 'hint' }, [bi('Tap ▲ ▼ to move a card. Saved automatically.', '按 ▲ ▼ 移動卡片，會自動儲存。')]));
+        cards.forEach(function (p, i) {
+          function move(delta) {
+            var j = i + delta;
+            var next = cards.slice();
+            next.splice(i, 1);
+            next.splice(j, 0, p);
+            saveOrder(next);
+            drawList();
+          }
+          listWrap.appendChild(el('div', { class: 'arrange-row' }, [
+            el('span', { class: 'arrange-num', text: String(i + 1) }),
+            el('div', { class: 'arrange-text' }, [
+              el('div', { class: 'phrase-en', text: p.en || p.zh }),
+              el('div', { class: 'arrange-ja', lang: 'ja', text: p.ja })
+            ]),
+            el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Move up 上移', disabled: i === 0, on: { click: function () { move(-1); } } }, [el('span', { 'aria-hidden': 'true', text: '▲' })]),
+            el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Move down 下移', disabled: i === cards.length - 1, on: { click: function () { move(1); } } }, [el('span', { 'aria-hidden': 'true', text: '▼' })])
+          ]));
+        });
+        return;
       }
       if (!cards.length) {
         listWrap.appendChild(el('p', { class: 'empty' }, [

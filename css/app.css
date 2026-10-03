@@ -290,6 +290,16 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 .phrase-ja { font-size: 1.75rem; font-weight: 700; line-height: 1.35; margin: 10px 0 2px; word-break: break-word; }
 .phrase-romaji { color: var(--muted); font-size: .85rem; font-style: italic; }
 .phrase-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.arrange-btn { margin: 0 0 4px; }
+.arrange-bar { margin: 0 0 4px; }
+.arrange-row {
+  display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 12px;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
+}
+.arrange-num { flex: none; width: 28px; text-align: center; font-weight: 800; color: var(--muted); }
+.arrange-text { flex: 1; min-width: 0; }
+.arrange-ja { font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
+.icon-btn:disabled { opacity: .3; cursor: default; }
 
 .dest-label { font-size: .85rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .dest-name { font-size: 1.35rem; font-weight: 700; margin-top: 4px; }

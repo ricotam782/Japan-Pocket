@@ -7,7 +7,7 @@ Designed for iPhone (Safari), with large text, big buttons, English labels with 
 
 | Tool 工具 | What it does 功能 |
 |---|---|
-| 💬 **Phrases 對話** | Phrase cards by category (restaurant, shopping, hotel, transport, help), speak aloud in Japanese, full-screen "show to staff" mode, favourites, your own cards, "type anything" translated **inside the app** (English or Chinese → Japanese, with a reading, recent translations kept for offline use), taxi card, food/dietary card |
+| 💬 **Phrases 對話** | Phrase cards by category (restaurant, shopping, hotel, transport, help), speak aloud in Japanese, full-screen "show to staff" mode, favourites, your own cards, your own card order per tab (↕ Arrange with ▲ ▼), "type anything" translated **inside the app** (English or Chinese → Japanese, with a reading, recent translations kept for offline use), taxi card, food/dietary card |
 | 💴 **Money 錢** | Yen ⇄ CAD converter (live rate from [Frankfurter](https://frankfurter.dev), last rate cached with its date for offline use, manual override), quick price check, trip wallet for any number of travellers, **end-of-trip settlement: who pays whom** |
 | 🆘 **Safety 安全** | One-tap 110 / 119, what to say when they answer, medical info card per traveller (Japanese + English), Canadian Embassy in Tokyo, 24/7 Ottawa emergency line, emergency phrase cards |
 | 📋 **Cheat sheets 貼士** | Toilet buttons, garbage sorting, etiquette |
